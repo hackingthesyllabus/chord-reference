@@ -74,7 +74,6 @@ input.tcb:checked+.tlbl .box::after{content:'✓';font-size:8px;color:var(--bg)}
 .panel{display:none;flex-direction:column;gap:.9rem}
 .panel.vis{display:flex}
 
-/* chord grid */
 .chord-grid{display:flex;flex-wrap:wrap;gap:1.1rem;align-content:flex-start}
 .card{background:var(--surface);border:1px solid var(--border);border-radius:8px;padding:.85rem .85rem .65rem;display:flex;flex-direction:column;align-items:center;gap:.45rem;cursor:pointer;transition:border-color .17s,transform .13s,box-shadow .17s;animation:fadeUp .2s ease;user-select:none}
 .card:hover{border-color:var(--gold);transform:translateY(-2px);box-shadow:0 5px 20px rgba(200,169,110,.1)}
@@ -97,7 +96,6 @@ input.tcb:checked+.tlbl .box::after{content:'✓';font-size:8px;color:var(--bg)}
 .empty{text-align:center;color:var(--dim);margin-top:5rem;font-size:.75rem;line-height:2.2;width:100%}
 .empty .big{font-family:'Playfair Display',serif;font-size:2rem;color:var(--border2);display:block;margin-bottom:.4rem}
 
-/* builder */
 .builder-wrap{display:flex;flex-direction:column;gap:1rem;width:100%}
 .builder-header{display:flex;align-items:center;gap:.7rem;flex-wrap:wrap}
 .builder-header h2{font-family:'Playfair Display',serif;font-size:1rem;color:var(--gold)}
@@ -146,7 +144,6 @@ input.tcb:checked+.tlbl .box::after{content:'✓';font-size:8px;color:var(--bg)}
 <div class="app">
   <aside class="sidebar">
 
-    <!-- DIATONIC -->
     <div class="panel vis" id="p-diatonic">
       <div class="sec"><div class="sec-label">Root Key</div><div class="key-grid" id="kg-diatonic"></div></div>
       <div class="sec">
@@ -164,6 +161,16 @@ input.tcb:checked+.tlbl .box::after{content:'✓';font-size:8px;color:var(--bg)}
         </select>
       </div>
       <div class="sec">
+        <div class="sec-label">Stack Size</div>
+        <select class="sel" id="sel-dia-stack">
+          <option value="3">Triads</option>
+          <option value="4">7ths</option>
+          <option value="5">9ths</option>
+          <option value="6">11ths</option>
+          <option value="7">13ths</option>
+        </select>
+      </div>
+      <div class="sec">
         <div class="sec-label">Inversion</div>
         <div class="inv-row" id="inv-diatonic"></div>
         <input type="checkbox" class="tcb" id="rnd-diatonic">
@@ -171,7 +178,6 @@ input.tcb:checked+.tlbl .box::after{content:'✓';font-size:8px;color:var(--bg)}
       </div>
     </div>
 
-    <!-- BROWSER -->
     <div class="panel" id="p-browser">
       <div class="sec"><div class="sec-label">Chord Type</div><div class="ctype-wrap" id="ctype-list"></div></div>
       <div class="sec">
@@ -190,7 +196,6 @@ input.tcb:checked+.tlbl .box::after{content:'✓';font-size:8px;color:var(--bg)}
       </div>
     </div>
 
-    <!-- PROGRESSION -->
     <div class="panel" id="p-progression">
       <div class="sec"><div class="sec-label">Root Key</div><div class="key-grid" id="kg-prog"></div></div>
       <div class="sec">
@@ -200,6 +205,16 @@ input.tcb:checked+.tlbl .box::after{content:'✓';font-size:8px;color:var(--bg)}
           <option value="minor">Natural Minor</option>
           <option value="harm_minor">Harmonic Minor</option>
           <option value="mel_minor">Melodic Minor</option>
+        </select>
+      </div>
+      <div class="sec">
+        <div class="sec-label">Stack Size</div>
+        <select class="sel" id="sel-prog-stack">
+          <option value="3">Triads</option>
+          <option value="4">7ths</option>
+          <option value="5">9ths</option>
+          <option value="6">11ths</option>
+          <option value="7">13ths</option>
         </select>
       </div>
       <div class="sec">
@@ -215,7 +230,6 @@ input.tcb:checked+.tlbl .box::after{content:'✓';font-size:8px;color:var(--bg)}
       </div>
     </div>
 
-    <!-- BUILDER -->
     <div class="panel" id="p-builder">
       <div class="sec"><div class="sec-label">Key for source chords</div><div class="key-grid" id="kg-builder"></div></div>
       <div class="sec">
@@ -225,6 +239,16 @@ input.tcb:checked+.tlbl .box::after{content:'✓';font-size:8px;color:var(--bg)}
           <option value="minor">Natural Minor</option>
           <option value="harm_minor">Harmonic Minor</option>
           <option value="mel_minor">Melodic Minor</option>
+        </select>
+      </div>
+      <div class="sec">
+        <div class="sec-label">Source Stack Size</div>
+        <select class="sel" id="sel-builder-stack">
+          <option value="3">Triads</option>
+          <option value="4">7ths</option>
+          <option value="5">9ths</option>
+          <option value="6">11ths</option>
+          <option value="7">13ths</option>
         </select>
       </div>
       <div class="sec">
@@ -245,7 +269,6 @@ input.tcb:checked+.tlbl .box::after{content:'✓';font-size:8px;color:var(--bg)}
       </div>
     </div>
 
-    <!-- GENERATE/CLEAR -->
     <div id="gen-btns" class="btn-row" style="margin-top:auto">
       <button class="abtn pri" id="btn-generate">Generate</button>
       <button class="abtn sec" id="btn-clear">Clear</button>
@@ -260,11 +283,8 @@ input.tcb:checked+.tlbl .box::after{content:'✓';font-size:8px;color:var(--bg)}
 </div>
 
 <script>
-// ══════════════════════════════════════════════
-//  DATA
-// ══════════════════════════════════════════════
 const SHARP=['C','C#','D','D#','E','F','F#','G','G#','A','A#','B'];
-const FLAT =['C','Db','D','Eb','E','F','Gb','G','Ab','A','Bb','B'];
+const FLAT=['C','Db','D','Eb','E','F','Gb','G','Ab','A','Bb','B'];
 const FLAT_KEYS=new Set(['F','Bb','Eb','Ab','Db','Gb']);
 function nLabel(idx,key){return(FLAT_KEYS.has(key)?FLAT:SHARP)[((idx%12)+12)%12]}
 function nIdx(name){let i=SHARP.indexOf(name);return i!==-1?i:FLAT.indexOf(name)}
@@ -333,14 +353,11 @@ function parseRoman(s){
   return d!==undefined?{degree:d}:null;
 }
 
-// ══════════════════════════════════════════════
-//  STATE
-// ══════════════════════════════════════════════
 const S={
   mode:'diatonic',
-  key:'A',scale:'major',
-  progKey:'C',progScale:'major',
-  builderKey:'C',builderScale:'major',
+  key:'A',scale:'major',diaStack:3,
+  progKey:'C',progScale:'major',progStack:3,
+  builderKey:'C',builderScale:'major',builderStack:3,
   diaInv:0,browInv:0,progInv:0,builderInv:0,
   rndDia:false,rndBrow:false,rndProg:false,rndBuilder:false,
   browserChordType:'Major',
@@ -349,64 +366,125 @@ const S={
   builderProg:[],
 };
 
-// ══════════════════════════════════════════════
-//  MUSIC
-// ══════════════════════════════════════════════
-function getDiatonicChords(root,scaleName){
+function intervalSignature(intervals){
+  return intervals.map(v=>((v%12)+12)%12).sort((a,b)=>a-b).join(',');
+}
+
+const CHORD_BY_SIG={};
+Object.values(CHORD_MAP).forEach(c=>{
+  CHORD_BY_SIG[intervalSignature(c.iv)] = c;
+});
+
+function getStackName(stackSize){
+  if(stackSize===3)return 'Triad';
+  if(stackSize===4)return '7th';
+  if(stackSize===5)return '9th';
+  if(stackSize===6)return '11th';
+  if(stackSize===7)return '13th';
+  return 'Chord';
+}
+
+function getInversionLabel(i){
+  if(i===0)return 'Root';
+  if(i===1)return '1st';
+  if(i===2)return '2nd';
+  if(i===3)return '3rd';
+  return `${i}th`;
+}
+
+function invLabel(inv){
+  if(inv===0)return 'Root pos.';
+  if(inv===1)return '1st inv.';
+  if(inv===2)return '2nd inv.';
+  if(inv===3)return '3rd inv.';
+  return `${inv}th inv.`;
+}
+
+function buildDiatonicOffsets(scaleIntervals, degree, stackSize){
+  const out=[0];
+  const base=scaleIntervals[degree];
+  for(let k=1;k<stackSize;k++){
+    const degIndex=degree + (2*k);
+    const wrapped=degIndex % 7;
+    const oct=Math.floor(degIndex / 7) * 12;
+    let val=scaleIntervals[wrapped] + oct - base;
+    while(val<=out[out.length-1]) val+=12;
+    out.push(val);
+  }
+  return out;
+}
+
+function getTriadQualityFromOffsets(offsets){
+  const sig=intervalSignature(offsets.slice(0,3));
+  if(sig==='0,4,7')return 'maj';
+  if(sig==='0,3,7')return 'min';
+  if(sig==='0,3,6')return 'dim';
+  if(sig==='0,4,8')return 'aug';
+  return 'maj';
+}
+
+function makeRomanLabel(index, quality){
+  const U=['I','II','III','IV','V','VI','VII'];
+  const L=['i','ii','iii','iv','v','vi','vii'];
+  if(quality==='min')return L[index];
+  if(quality==='dim')return L[index]+'°';
+  if(quality==='aug')return U[index]+'+';
+  return U[index];
+}
+
+function getDisplayChordData(offsets){
+  const sig=intervalSignature(offsets);
+  return CHORD_BY_SIG[sig] || null;
+}
+
+function getDiatonicChords(root,scaleName,stackSize=3){
   const ri=nIdx(root), sc=SCALES[scaleName];
   return sc.map((interval,i)=>{
-    let t=sc[(i+2)%7]-interval; if(t<0)t+=12;
-    let f=sc[(i+4)%7]-interval; if(f<0)f+=12;
-    while(f<=t)f+=12;
-    const q=t===3&&f===6?'dim':t===4&&f===8?'aug':t===3?'min':'maj';
-    const n1=(ri+interval)%12, n2=(n1+t)%12, n3=(n1+f%12)%12;
-    const DM=['I','II','III','IV','V','VI','VII'], dm=['i','ii','iii','iv','v','vi','vii'];
-    const label=(q==='min'||q==='dim')?dm[i]+(q==='dim'?'°':''):DM[i]+(q==='aug'?'+':'');
-    // store raw offsets so inversion works correctly
-    return{root:n1,offsets:[0,t,f%12===0?f:f],quality:q,label,rootName:nLabel(n1,root),degree:i};
+    const rootPc=(ri+interval)%12;
+    const offsets=buildDiatonicOffsets(sc,i,stackSize);
+    const quality=getTriadQualityFromOffsets(offsets);
+    const rootName=nLabel(rootPc,root);
+    const roman=makeRomanLabel(i,quality);
+    const matched=getDisplayChordData(offsets);
+    const displayName=matched ? (rootName + matched.sym) : `${rootName} ${getStackName(stackSize)}`;
+    return {
+      root:rootPc,
+      offsets,
+      quality,
+      label:roman,
+      displayName,
+      rootName,
+      degree:i,
+      stackSize,
+      matched
+    };
   });
 }
 
 function applyInversion(offsets,inv){
-  // offsets are semitone distances from root (may span >12 for inversions)
   let n=[...offsets].sort((a,b)=>a-b);
-  for(let k=0;k<inv;k++){
+  const maxInv=Math.max(0,n.length-1);
+  const safeInv=Math.max(0,Math.min(inv,maxInv));
+  for(let k=0;k<safeInv;k++){
     n[0]+=12;
     n.sort((a,b)=>a-b);
   }
   return n;
 }
 
-function invLabel(inv){return['Root pos.','1st inv.','2nd inv.','3rd inv.'][inv]||'Root pos.'}
+const WIO=[0,2,4,5,7,9,11];
+const BWU={1:.67,3:1.67,6:3.67,8:4.67,10:5.67};
 
-// ══════════════════════════════════════════════
-//  PIANO SVG
-// ══════════════════════════════════════════════
-const WIO=[0,2,4,5,7,9,11]; // white key semitones in octave
-const BWU={1:.67,3:1.67,6:3.67,8:4.67,10:5.67}; // black key white-unit offsets
-
-// rootSemi: the chord root semitone class (0-11), used to pick which highlighted key is golden
-// rootOffset: the offset value in the inverted notes array that corresponds to the root
 function resolveToMidi(offsets, rootSemi){
   const sorted=[...offsets].sort((a,b)=>a-b);
-  // The root semitone class can appear at various octaves. We need to find the MIDI note
-  // corresponding to rootSemi (the actual chord root, not necessarily lowest note).
-  // Anchor: put the lowest note in comfortable range starting ~C3 (MIDI 48)
-  // Step 1: find absolute semitone of lowest offset
-  // offsets are relative increments from chord root. The chord root has semitone = rootSemi.
-  // So midi of offset[i] = rootMidi + offset[i]
-  // We want rootMidi such that sorted[0]+rootMidi is in range [48..71]
-  let rootMidi=48+rootSemi; // C3 octave + rootSemi
-  // ensure lowest note (rootMidi + sorted[0]) >= 48
+  let rootMidi=48+rootSemi;
   while(rootMidi+sorted[0]<48) rootMidi+=12;
-  // ensure highest note (rootMidi + sorted[last]) <= 84 (C5+)
   while(rootMidi+sorted[sorted.length-1]>84) rootMidi-=12;
   return {midiNotes:sorted.map(o=>rootMidi+o), rootMidi};
 }
 
 function buildPianoSVG(offsets, key, rootSemi){
-  const {midiNotes,rootMidi}=resolveToMidi(offsets,rootSemi);
-  const rootMidiNote=rootMidi; // MIDI value of the chord root
+  const {midiNotes}=resolveToMidi(offsets,rootSemi);
 
   const minM=midiNotes[0], maxM=midiNotes[midiNotes.length-1];
   const startOct=Math.floor(minM/12);
@@ -426,24 +504,27 @@ function buildPianoSVG(offsets, key, rootSemi){
   let wh='',bk='',lb='';
   for(let m=START;m<=END;m++){
     if(isBlk(m))continue;
-    const x=wX(m),hl=hlSet.has(m),isRoot=(m===rootMidiNote);
+    const x=wX(m),hl=hlSet.has(m),isRoot=((m%12+12)%12)===rootSemi && hl;
     const fill=hl?(isRoot?'#c8a96e':'#aed6e6'):'#f0ede6';
     wh+=`<rect x="${x}" y="${PAD}" width="${W-1}" height="${WH}" rx="3" fill="${fill}" stroke="#b0a898" stroke-width="0.7"/>`;
-    if(hl){const nm=nLabel(m%12,key||'C');lb+=`<text x="${x+(W-1)/2}" y="${WH-6}" text-anchor="middle" fill="${isRoot?'#3a2000':'#0a2530'}" font-size="${nm.length>2?7:8.5}" font-family="DM Mono,monospace" font-weight="700">${nm}</text>`}
+    if(hl){
+      const nm=nLabel(m%12,key||'C');
+      lb+=`<text x="${x+(W-1)/2}" y="${WH-6}" text-anchor="middle" fill="${isRoot?'#3a2000':'#0a2530'}" font-size="${nm.length>2?7:8.5}" font-family="DM Mono,monospace" font-weight="700">${nm}</text>`;
+    }
   }
   for(let m=START;m<=END;m++){
     if(!isBlk(m))continue;
-    const x=bX(m),hl=hlSet.has(m),isRoot=(m===rootMidiNote);
+    const x=bX(m),hl=hlSet.has(m),isRoot=((m%12+12)%12)===rootSemi && hl;
     const fill=hl?(isRoot?'#c8a96e':'#4a8898'):'#1a1a1e';
     bk+=`<rect x="${x}" y="${PAD}" width="${BW}" height="${BH}" rx="2" fill="${fill}" stroke="#222" stroke-width="0.7"/>`;
-    if(hl){const nm=nLabel(m%12,key||'C');bk+=`<text x="${x+BW/2}" y="${BH-5}" text-anchor="middle" fill="${isRoot?'#3a2000':'#cee8f0'}" font-size="${nm.length>2?6:7.5}" font-family="DM Mono,monospace" font-weight="700">${nm}</text>`}
+    if(hl){
+      const nm=nLabel(m%12,key||'C');
+      bk+=`<text x="${x+BW/2}" y="${BH-5}" text-anchor="middle" fill="${isRoot?'#3a2000':'#cee8f0'}" font-size="${nm.length>2?6:7.5}" font-family="DM Mono,monospace" font-weight="700">${nm}</text>`;
+    }
   }
   return`<svg width="${svgW}" height="${svgH}" viewBox="0 0 ${svgW} ${svgH}" xmlns="http://www.w3.org/2000/svg">${wh}${bk}${lb}</svg>`;
 }
 
-// ══════════════════════════════════════════════
-//  AUDIO
-// ══════════════════════════════════════════════
 let ACtx=null;
 function getACtx(){if(!ACtx)ACtx=new(window.AudioContext||window.webkitAudioContext)();return ACtx}
 function m2f(m){return 440*Math.pow(2,(m-69)/12)}
@@ -469,9 +550,6 @@ function playOffsets(offsets,rootSemi,delayStart=0){
   });
 }
 
-// ══════════════════════════════════════════════
-//  CARD
-// ══════════════════════════════════════════════
 function tagHTML(t){return`<span class="tag tag-${t}">${t}</span>`}
 
 function makeCard(title,subtitle,offsets,rootSemi,key,tag){
@@ -488,30 +566,33 @@ function makeCard(title,subtitle,offsets,rootSemi,key,tag){
   return card;
 }
 
-// ══════════════════════════════════════════════
-//  GENERATE
-// ══════════════════════════════════════════════
+function getBrowserMaxInv(){
+  const ct=CHORD_MAP[S.browserChordType];
+  return ct ? Math.max(0,ct.iv.length-1) : 0;
+}
+function getDiaMaxInv(){ return Math.max(0,S.diaStack-1); }
+function getProgMaxInv(){ return Math.max(0,S.progStack-1); }
+function getBuilderMaxInv(){ return Math.max(0,S.builderStack-1); }
+
 function generate(){
   const grid=document.getElementById('chord-grid');
   if(!grid)return;
   grid.innerHTML='';
 
   if(S.mode==='diatonic'){
-    const chords=getDiatonicChords(S.key,S.scale);
+    const chords=getDiatonicChords(S.key,S.scale,S.diaStack);
+    const maxInv=getDiaMaxInv();
     chords.forEach(ch=>{
-      const inv=S.rndDia?Math.floor(Math.random()*3):S.diaInv;
+      const inv=S.rndDia?Math.floor(Math.random()*(maxInv+1)):Math.min(S.diaInv,maxInv);
       const invOff=applyInversion(ch.offsets,inv);
-      // shift so root offset becomes 0-based from chord root
-      const rootOffsets=invOff.map(o=>ch.root+o); // absolute semitone values don't matter; we just need offsets from root
-      // Actually: offsets are already from root. resolveToMidi uses rootSemi.
-      grid.appendChild(makeCard(ch.label,invLabel(inv),invOff,ch.root,S.key,ch.quality));
+      grid.appendChild(makeCard(`${ch.label} — ${ch.displayName}`,invLabel(inv),invOff,ch.root,S.key,ch.quality));
     });
 
   }else if(S.mode==='browser'){
     const ct=CHORD_MAP[S.browserChordType];
     if(!ct){grid.innerHTML='<div class="empty"><span class="big">♩</span>Select a chord type</div>';return}
     const order=S.browserOrder==='c4ths'?C4:S.browserOrder==='c5ths'?C5:CHR;
-    const maxInv=Math.min(3,ct.iv.length-1);
+    const maxInv=getBrowserMaxInv();
     order.forEach(rootName=>{
       const ri=nIdx(rootName);
       const inv=S.rndBrow?Math.floor(Math.random()*(maxInv+1)):Math.min(S.browInv,maxInv);
@@ -520,17 +601,18 @@ function generate(){
     });
 
   }else if(S.mode==='progression'){
-    const tokens=S.progText.trim().split(/\s+/);
-    const diaCh=getDiatonicChords(S.progKey,S.progScale);
+    const tokens=S.progText.trim().split(/\s+/).filter(Boolean);
+    const diaCh=getDiatonicChords(S.progKey,S.progScale,S.progStack);
+    const maxInv=getProgMaxInv();
     let any=false;
     tokens.forEach(tok=>{
       const p=parseRoman(tok);
       if(!p||p.degree>=diaCh.length)return;
       any=true;
       const ch=diaCh[p.degree];
-      const inv=S.rndProg?Math.floor(Math.random()*3):S.progInv;
+      const inv=S.rndProg?Math.floor(Math.random()*(maxInv+1)):Math.min(S.progInv,maxInv);
       const invOff=applyInversion(ch.offsets,inv);
-      grid.appendChild(makeCard(`${tok} — ${ch.rootName}`,invLabel(inv),invOff,ch.root,S.progKey,ch.quality));
+      grid.appendChild(makeCard(`${tok} — ${ch.displayName}`,invLabel(inv),invOff,ch.root,S.progKey,ch.quality));
     });
     if(!any)grid.innerHTML='<div class="empty"><span class="big">♩</span>Enter valid Roman numerals</div>';
   }
@@ -538,16 +620,12 @@ function generate(){
   if(!grid.children.length)grid.innerHTML='<div class="empty"><span class="big">♩</span>No chords to display</div>';
 }
 
-// ══════════════════════════════════════════════
-//  BUILDER
-// ══════════════════════════════════════════════
 function renderBuilder(){
   const main=document.getElementById('main-area');
   main.innerHTML='';
   const wrap=document.createElement('div');
   wrap.className='builder-wrap';
 
-  // header
   const hdr=document.createElement('div');
   hdr.className='builder-header';
   hdr.innerHTML='<h2>Progression Builder</h2>';
@@ -558,7 +636,6 @@ function renderBuilder(){
   hdr.appendChild(pp);hdr.appendChild(cl);
   wrap.appendChild(hdr);
 
-  // drop zone
   const dz=document.createElement('div');
   dz.className='drop-zone'+(S.builderProg.length===0?' empty-zone':'');
   dz.id='drop-zone';
@@ -566,7 +643,6 @@ function renderBuilder(){
   setupDZ(dz);
   wrap.appendChild(dz);
 
-  // source pool
   const poolLabel=document.createElement('div');
   poolLabel.className='sec-label';poolLabel.style.marginTop='.6rem';
   poolLabel.textContent='Diatonic source chords — drag or click to add';
@@ -574,20 +650,20 @@ function renderBuilder(){
 
   const pool=document.createElement('div');
   pool.className='source-pool';
-  const diaCh=getDiatonicChords(S.builderKey,S.builderScale);
+  const diaCh=getDiatonicChords(S.builderKey,S.builderScale,S.builderStack);
+  const maxInv=getBuilderMaxInv();
   diaCh.forEach(ch=>{
     const t=document.createElement('div');t.className='src-tile';t.draggable=true;
-    const inv=S.rndBuilder?Math.floor(Math.random()*3):S.builderInv;
+    const inv=S.rndBuilder?Math.floor(Math.random()*(maxInv+1)):Math.min(S.builderInv,maxInv);
     const invOff=applyInversion(ch.offsets,inv);
-    t.innerHTML=`<div class="sname">${ch.label}</div><div class="ssub">${ch.rootName} ${ch.quality}</div>`;
-    const item={label:ch.label,rootName:ch.rootName,quality:ch.quality,inv,offsets:invOff,rootSemi:ch.root,key:S.builderKey};
+    t.innerHTML=`<div class="sname">${ch.label}</div><div class="ssub">${ch.displayName}</div>`;
+    const item={label:ch.displayName,rootName:ch.rootName,quality:ch.quality,inv,offsets:invOff,rootSemi:ch.root,key:S.builderKey};
     t.ondragstart=e=>e.dataTransfer.setData('src-chord',JSON.stringify(item));
     t.onclick=()=>addToBuilder(item);
     pool.appendChild(t);
   });
   wrap.appendChild(pool);
 
-  // previews
   if(S.builderProg.length>0){
     const pvl=document.createElement('div');pvl.className='sec-label';pvl.style.marginTop='.8rem';
     pvl.textContent='Progression preview';
@@ -625,7 +701,10 @@ function setupDZ(dz){
       const from=parseInt(ti);
       const tiles=[...dz.querySelectorAll('.prog-tile')];
       let toIdx=S.builderProg.length;
-      for(let i=0;i<tiles.length;i++){const r=tiles[i].getBoundingClientRect();if(e.clientX<r.left+r.width/2){toIdx=i;break}}
+      for(let i=0;i<tiles.length;i++){
+        const r=tiles[i].getBoundingClientRect();
+        if(e.clientX<r.left+r.width/2){toIdx=i;break}
+      }
       if(from!==toIdx){
         const[m]=S.builderProg.splice(from,1);
         S.builderProg.splice(toIdx>from?toIdx-1:toIdx,0,m);
@@ -637,9 +716,6 @@ function setupDZ(dz){
 
 function addToBuilder(item){S.builderProg.push({...item});renderBuilder()}
 
-// ══════════════════════════════════════════════
-//  UI WIRING
-// ══════════════════════════════════════════════
 function buildKeyGrid(id,sk,cb){
   const el=document.getElementById(id);el.innerHTML='';
   C4.forEach(k=>{
@@ -650,15 +726,23 @@ function buildKeyGrid(id,sk,cb){
   });
 }
 
-function buildInvRow(id,sk,max=3){
+function buildInvRow(id,sk,max=2){
   const el=document.getElementById(id);el.innerHTML='';
-  const lbl=['Root','1st','2nd','3rd'];
   for(let i=0;i<=max;i++){
     const b=document.createElement('button');
-    b.className='ibtn'+(S[sk]===i?' on':'');b.textContent=lbl[i];
+    b.className='ibtn'+(S[sk]===i?' on':'');
+    b.textContent=getInversionLabel(i);
     b.onclick=()=>{S[sk]=i;buildInvRow(id,sk,max)};
     el.appendChild(b);
   }
+  if(S[sk]>max)S[sk]=max;
+}
+
+function rebuildAllInvRows(){
+  buildInvRow('inv-diatonic','diaInv',getDiaMaxInv());
+  buildInvRow('inv-browser','browInv',getBrowserMaxInv());
+  buildInvRow('inv-prog','progInv',getProgMaxInv());
+  buildInvRow('inv-builder','builderInv',getBuilderMaxInv());
 }
 
 function buildChordTypeList(){
@@ -670,22 +754,22 @@ function buildChordTypeList(){
       const b=document.createElement('button');
       b.className='ctbtn'+(S.browserChordType===c.name?' on':'');
       b.innerHTML=`${c.name}<span class="sym">${c.sym}</span>`;
-      b.onclick=()=>{S.browserChordType=c.name;buildChordTypeList();syncBrowInv()};
+      b.onclick=()=>{S.browserChordType=c.name;buildChordTypeList();rebuildAllInvRows()};
       el.appendChild(b);
     });
   });
-}
-
-function syncBrowInv(){
-  const ct=CHORD_MAP[S.browserChordType];
-  if(ct)buildInvRow('inv-browser','browInv',Math.min(3,ct.iv.length-1));
 }
 
 function buildBuilderTypeSelect(){
   const el=document.getElementById('sel-builder-type');el.innerHTML='';
   CHORD_GROUPS.forEach(g=>{
     const og=document.createElement('optgroup');og.label=g.group;
-    g.chords.forEach(c=>{const o=document.createElement('option');o.value=c.name;o.textContent=`${c.name} (${c.sym||'—'})`;og.appendChild(o)});
+    g.chords.forEach(c=>{
+      const o=document.createElement('option');
+      o.value=c.name;
+      o.textContent=`${c.name} (${c.sym||'—'})`;
+      og.appendChild(o);
+    });
     el.appendChild(og);
   });
 }
@@ -702,26 +786,29 @@ function setMode(m){
   else{main.innerHTML='<div class="chord-grid" id="chord-grid"></div>';generate()}
 }
 
-// Init
 buildKeyGrid('kg-diatonic','key');
 buildKeyGrid('kg-prog','progKey');
 buildKeyGrid('kg-builder','builderKey',()=>{if(S.mode==='builder')renderBuilder()});
-buildInvRow('inv-diatonic','diaInv');
-buildInvRow('inv-browser','browInv');
-buildInvRow('inv-prog','progInv');
-buildInvRow('inv-builder','builderInv');
 buildChordTypeList();
 buildBuilderTypeSelect();
+rebuildAllInvRows();
 
 document.querySelectorAll('[data-order]').forEach(b=>{
   b.classList.toggle('on',b.dataset.order===S.browserOrder);
-  b.onclick=()=>{S.browserOrder=b.dataset.order;document.querySelectorAll('[data-order]').forEach(x=>x.classList.toggle('on',x.dataset.order===S.browserOrder))};
+  b.onclick=()=>{
+    S.browserOrder=b.dataset.order;
+    document.querySelectorAll('[data-order]').forEach(x=>x.classList.toggle('on',x.dataset.order===S.browserOrder));
+  };
 });
 document.querySelectorAll('[data-mode]').forEach(b=>b.onclick=()=>setMode(b.dataset.mode));
 
 document.getElementById('sel-scale').onchange=e=>S.scale=e.target.value;
 document.getElementById('sel-prog-scale').onchange=e=>S.progScale=e.target.value;
 document.getElementById('sel-builder-scale').onchange=e=>{S.builderScale=e.target.value;if(S.mode==='builder')renderBuilder()};
+
+document.getElementById('sel-dia-stack').onchange=e=>{S.diaStack=parseInt(e.target.value,10);rebuildAllInvRows();if(S.mode==='diatonic')generate()};
+document.getElementById('sel-prog-stack').onchange=e=>{S.progStack=parseInt(e.target.value,10);rebuildAllInvRows();if(S.mode==='progression')generate()};
+document.getElementById('sel-builder-stack').onchange=e=>{S.builderStack=parseInt(e.target.value,10);rebuildAllInvRows();if(S.mode==='builder')renderBuilder()};
 
 document.getElementById('prog-text').value=S.progText;
 document.getElementById('prog-text').oninput=e=>S.progText=e.target.value;
@@ -736,7 +823,7 @@ document.getElementById('btn-add-custom').onclick=()=>{
   const typeName=document.getElementById('sel-builder-type').value;
   const ct=CHORD_MAP[typeName];if(!ct)return;
   const ri=nIdx(rootName);
-  const maxInv=Math.min(3,ct.iv.length-1);
+  const maxInv=Math.max(0,ct.iv.length-1);
   const inv=S.rndBuilder?Math.floor(Math.random()*(maxInv+1)):Math.min(S.builderInv,maxInv);
   const invOff=applyInversion(ct.iv,inv);
   addToBuilder({label:rootName+ct.sym,rootName,quality:ct.tag,inv,offsets:invOff,rootSemi:ri,key:rootName});
