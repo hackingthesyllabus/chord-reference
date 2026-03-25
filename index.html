@@ -659,99 +659,175 @@ function applyInversion(notes, inv) {
 
 // ─── PIANO RENDERING ─────────────────────────────────────────────────────────
 
-// We'll render a 2-octave span centred around the chord notes
-// White key indices within an octave: C=0,D=1,E=2,F=3,G=4,A=5,B=6
-const WHITE_IN_OCT = [0,2,4,5,7,9,11]; // semitone positions of white keys
-const BLACK_OFFSETS = { 1:0.6, 3:1.6, 6:3.6, 8:4.6, 10:5.6 }; // black key white-unit offsets
+const WHITE_IN_OCT = [0,2,4,5,7,9,11]; // semitone positions of white keys within octave
+// Black key position as offset in white-key units from start of octave
+const BLACK_WU = { 1:0.67, 3:1.67, 6:3.67, 8:4.67, 10:5.67 };
 
-function buildPianoSVG(notesRaw, key) {
-  // Show 2 octaves: C4 to B5 (MIDI 60..83)
-  const START_MIDI = 48; // C3
-  const END_MIDI   = 83; // B5
-  const NUM_OCT    = 3;
+function semiToWhiteIndex(semi) {
+  // returns the white-key index (0-6) for a semitone in [0..11], or -1 if black
+  return WHITE_IN_OCT.indexOf(semi);
+}
 
-  const W = 14; // white key width
-  const WH = 60; // white key height
-  const BW = 9;  // black key width
-  const BH = 38; // black key height
+// Convert a MIDI note to a white-key count from MIDI 0
+function midiToWhiteCount(midi) {
+  const oct = Math.floor(midi / 12);
+  const semi = midi % 12;
+  const wi = WHITE_IN_OCT.indexOf(semi);
+  if (wi === -1) return null; // black key
+  return oct * 7 + wi;
+}
 
-  const totalWhite = NUM_OCT * 7;
-  const svgW = totalWhite * W + 2;
-  const svgH = WH + 16;
+// Place MIDI notes into correct absolute MIDI values from semitone classes
+// notesRaw = array of semitone-class values (may be > 11 due to inversion octave shifts)
+function resolveToMidi(notesRaw) {
+  // notesRaw values: 0-23 (inversion can add 12)
+  // We place the lowest note around octave 4 (MIDI 48-59 = C3-B3 .. C4-B4)
+  // Strategy: keep relative intervals, anchor root near C4 (60)
 
-  // Map raw note values to actual MIDI positions (put in reasonable octave range)
-  // notes come as semitone classes (0-11); we need to pick an octave
-  // Use root as anchor around octave 4 (MIDI 60 = C4)
-  const rootSemi = notesRaw[0] % 12;
-  const rootMidi = 60 + rootSemi; // put root near C4
+  // Sort ascending (they should already be but just in case)
+  const sorted = [...notesRaw].sort((a,b)=>a-b);
 
-  let midiNotes = notesRaw.map(n => {
-    let m = 60 + (n % 12);
-    while (m < rootMidi) m += 12;
-    while (m > rootMidi + 12) m -= 12;
-    return m;
+  // Root semitone class
+  const rootSemi = sorted[0] % 12;
+
+  // Place root: find MIDI for root near 60 (C4)
+  let rootMidi = 60 + rootSemi;
+  if (rootMidi > 65) rootMidi -= 12; // keep root in C4-F4 range max (so chord fits in 1.5 octaves)
+
+  // Now build other notes preserving exact intervals relative to root
+  const rootRaw = sorted[0];
+  const midiNotes = sorted.map(n => {
+    const diff = n - rootRaw; // semitone offset from root (0, 3/4, 7/8 etc, possibly +12 for inversions)
+    return rootMidi + diff;
   });
 
-  // Ensure ascending
-  midiNotes.sort((a,b)=>a-b);
-  // Keep within display range
-  while (midiNotes[0] < START_MIDI) midiNotes = midiNotes.map(n=>n+12);
-  while (midiNotes[midiNotes.length-1] > END_MIDI) midiNotes = midiNotes.map(n=>n-12);
+  return midiNotes;
+}
+
+function buildPianoSVG(notesRaw, key) {
+  const midiNotes = resolveToMidi(notesRaw);
+  const minMidi = midiNotes[0];
+  const maxMidi = midiNotes[midiNotes.length - 1];
+
+  // Show 2 octaves starting from C just below the lowest note
+  const startOct = Math.floor(minMidi / 12) - 0; // octave of lowest note
+  // Start display at C of that octave
+  const START_MIDI = startOct * 12; // C of startOct
+  // Show enough to cover maxMidi + some padding, at least 2 full octaves
+  const neededOcts = Math.ceil((maxMidi - START_MIDI) / 12) + 1;
+  const NUM_OCT = Math.max(2, neededOcts);
+  const END_MIDI = START_MIDI + NUM_OCT * 12 - 1;
+
+  const W  = 20;  // white key width px
+  const WH = 80;  // white key height px
+  const BW = 13;  // black key width px
+  const BH = 50;  // black key height px
+  const PAD = 2;
+
+  const totalWhite = NUM_OCT * 7;
+  const svgW = totalWhite * W + PAD * 2;
+  const svgH = WH + 20;
 
   const highlightSet = new Set(midiNotes);
 
-  function midiToWhiteX(midi) {
-    const octOff = Math.floor((midi - 36) / 12);
-    const semi = (midi - 36) % 12;
-    const wi = WHITE_IN_OCT.indexOf(semi);
-    return (octOff * 7 + wi) * W + 1;
+  // white key x from midi (relative to START_MIDI)
+  function whiteX(midi) {
+    const relOct = Math.floor((midi - START_MIDI) / 12);
+    const semi   = (midi - START_MIDI) % 12;
+    const wi     = WHITE_IN_OCT.indexOf(semi);
+    return PAD + (relOct * 7 + wi) * W;
+  }
+
+  // black key x from midi
+  function blackX(midi) {
+    const relOct = Math.floor((midi - START_MIDI) / 12);
+    const semi   = (midi - START_MIDI) % 12;
+    return PAD + (relOct * 7 + BLACK_WU[semi]) * W;
   }
 
   function isBlack(midi) {
-    return !WHITE_IN_OCT.includes((midi-36+120)%12);
+    return !WHITE_IN_OCT.includes((midi - START_MIDI + 1200) % 12);
   }
 
-  function blackX(midi) {
-    const octOff = Math.floor((midi - 36) / 12);
-    const semi = (midi-36)%12;
-    return (octOff * 7 + BLACK_OFFSETS[semi]) * W + 1;
-  }
-
-  let whites = '';
-  let blacks = '';
-  let labels = '';
+  let whites = '', blacks = '', labels = '';
 
   for (let m = START_MIDI; m <= END_MIDI; m++) {
-    const s = (m - 36) % 12;
-    if (!WHITE_IN_OCT.includes(s)) continue;
-    const x = midiToWhiteX(m);
-    const hl = highlightSet.has(m);
-    const rootHl = m === midiNotes[0];
-    const fill = hl ? (rootHl ? '#c8a96e' : '#7eb8c8') : '#f0ede6';
-    const stroke = '#b0a898';
-    whites += `<rect x="${x}" y="2" width="${W-1}" height="${WH}" rx="2" fill="${fill}" stroke="${stroke}" stroke-width="0.8"/>`;
-
+    if (isBlack(m)) continue;
+    const x   = whiteX(m);
+    const hl  = highlightSet.has(m);
+    const isRoot = m === midiNotes[0];
+    const fill   = hl ? (isRoot ? '#c8a96e' : '#7eb8c8') : '#f0ede6';
+    whites += `<rect x="${x}" y="${PAD}" width="${W-1}" height="${WH}" rx="3" fill="${fill}" stroke="#b0a898" stroke-width="0.8"/>`;
     if (hl) {
-      const noteN = noteLabel(m % 12, key||'C');
-      labels += `<text x="${x + (W-1)/2}" y="${WH - 5}" text-anchor="middle" fill="${rootHl ? '#0e0e10' : '#0e0e10'}" font-size="6.5" font-family="DM Mono,monospace" font-weight="500">${noteN}</text>`;
+      const nm = noteLabel(m % 12, key || 'C');
+      labels += `<text x="${x + (W-1)/2}" y="${WH - 7}" text-anchor="middle" fill="#0e0e10" font-size="9" font-family="DM Mono,monospace" font-weight="600">${nm}</text>`;
     }
   }
 
   for (let m = START_MIDI; m <= END_MIDI; m++) {
     if (!isBlack(m)) continue;
-    const x = blackX(m);
-    const hl = highlightSet.has(m);
-    const rootHl = m === midiNotes[0];
-    const fill = hl ? (rootHl ? '#c8a96e' : '#7eb8c8') : '#1a1a1e';
-    const stroke = '#444';
-    blacks += `<rect x="${x}" y="2" width="${BW}" height="${BH}" rx="1.5" fill="${fill}" stroke="${stroke}" stroke-width="0.8"/>`;
+    const x   = blackX(m);
+    const hl  = highlightSet.has(m);
+    const isRoot = m === midiNotes[0];
+    const fill   = hl ? (isRoot ? '#c8a96e' : '#7eb8c8') : '#1a1a1e';
+    blacks += `<rect x="${x}" y="${PAD}" width="${BW}" height="${BH}" rx="2" fill="${fill}" stroke="#333" stroke-width="0.8"/>`;
     if (hl) {
-      const noteN = noteLabel(m % 12, key||'C');
-      blacks += `<text x="${x + BW/2}" y="${BH - 4}" text-anchor="middle" fill="${rootHl ? '#0e0e10' : '#0e0e10'}" font-size="6" font-family="DM Mono,monospace" font-weight="500">${noteN}</text>`;
+      const nm = noteLabel(m % 12, key || 'C');
+      blacks += `<text x="${x + BW/2}" y="${BH - 5}" text-anchor="middle" fill="#0e0e10" font-size="7.5" font-family="DM Mono,monospace" font-weight="600">${nm}</text>`;
     }
   }
 
   return `<svg class="piano" width="${svgW}" height="${svgH}" viewBox="0 0 ${svgW} ${svgH}" xmlns="http://www.w3.org/2000/svg">${whites}${blacks}${labels}</svg>`;
+}
+
+// ─── AUDIO ────────────────────────────────────────────────────────────────────
+
+let audioCtx = null;
+
+function getAudioCtx() {
+  if (!audioCtx) audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+  return audioCtx;
+}
+
+function midiToFreq(midi) {
+  return 440 * Math.pow(2, (midi - 69) / 12);
+}
+
+function playChord(notesRaw, key) {
+  const ctx = getAudioCtx();
+  if (ctx.state === 'suspended') ctx.resume();
+
+  const midiNotes = resolveToMidi(notesRaw);
+  const now = ctx.currentTime;
+  const duration = 1.6;
+
+  midiNotes.forEach((midi, i) => {
+    const osc  = ctx.createOscillator();
+    const gain = ctx.createGain();
+    // Slightly detuned for warmth
+    const osc2 = ctx.createOscillator();
+    const g2   = ctx.createGain();
+
+    osc.type  = 'triangle';
+    osc2.type = 'sine';
+    osc.frequency.value  = midiToFreq(midi);
+    osc2.frequency.value = midiToFreq(midi) * 1.003;
+
+    gain.gain.setValueAtTime(0, now);
+    gain.gain.linearRampToValueAtTime(0.18, now + 0.01);
+    gain.gain.exponentialRampToValueAtTime(0.001, now + duration);
+
+    g2.gain.setValueAtTime(0, now);
+    g2.gain.linearRampToValueAtTime(0.08, now + 0.01);
+    g2.gain.exponentialRampToValueAtTime(0.001, now + duration);
+
+    osc.connect(gain);   gain.connect(ctx.destination);
+    osc2.connect(g2);    g2.connect(ctx.destination);
+
+    const startTime = now + i * 0.04; // slight arpeggiation
+    osc.start(startTime);  osc.stop(startTime + duration);
+    osc2.start(startTime); osc2.stop(startTime + duration);
+  });
 }
 
 // ─── STATE ───────────────────────────────────────────────────────────────────
@@ -892,10 +968,14 @@ function generate() {
         <div class="chord-card-title">${displayLabel}</div>
         ${qualityTag}
       </div>
-      <div class="chord-card-sub">${invLabel}</div>
+      <div class="chord-card-sub">${invLabel} &nbsp;·&nbsp; <span style="color:var(--accent);font-size:0.6rem;letter-spacing:0.06em;opacity:0.7">▶ tap to play</span></div>
       ${pianoSVG}
       <div class="chord-notes">${noteNames}</div>
     `;
+    card.style.cursor = 'pointer';
+    const _notes = [...invNotes];
+    const _key = key;
+    card.onclick = () => playChord(_notes, _key);
     grid.appendChild(card);
   });
 }
