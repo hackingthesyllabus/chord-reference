@@ -44,7 +44,7 @@ body{
   background:var(--bg);color:var(--text);font-family:'DM Mono',monospace;
   display:flex;flex-direction:column;
   /* reserve space for fixed bottom bar */
-  padding-bottom:44px;
+  padding-bottom:152px;
 }
 
 /* ── HEADER ── */
@@ -117,19 +117,32 @@ header h1{font-family:'Playfair Display',serif;font-size:1.2rem;color:var(--gold
 
 /* ── FIXED MIDI BAR (bottom) ── */
 .midi-bar{
-  position:fixed;bottom:0;left:0;right:0;height:44px;
+  position:fixed;bottom:0;left:0;right:0;min-height:152px;
   background:var(--surface);border-top:1px solid var(--border);
-  display:flex;align-items:center;gap:1rem;padding:0 1.2rem;
+  display:grid;grid-template-columns:220px minmax(240px,340px) 1fr auto;align-items:center;gap:1rem;padding:.8rem 1.2rem;
   z-index:20;font-size:.62rem;color:var(--dim);
 }
+.midi-left{display:flex;flex-direction:column;gap:.28rem;min-width:0}
 .midi-bar-label{font-size:.58rem;letter-spacing:.08em;text-transform:uppercase;color:var(--dim);white-space:nowrap}
 .midi-status{color:var(--text);font-size:.68rem;min-width:100px}
-.midi-chord{color:var(--gold);font-family:'Playfair Display',serif;font-size:.88rem;min-width:90px}
-.note-chip-row{display:flex;gap:.3rem;flex-wrap:nowrap;overflow:hidden}
+.midi-substatus{font-size:.56rem;color:var(--dim);line-height:1.4}
+.midi-center{display:flex;flex-direction:column;gap:.4rem;min-width:0}
+.midi-chord{color:var(--gold);font-family:'Playfair Display',serif;font-size:1.7rem;line-height:1.05;min-width:90px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.midi-notes-text{font-size:.66rem;color:var(--text);line-height:1.4;min-height:1.1rem}
+.note-chip-row{display:flex;gap:.3rem;flex-wrap:wrap;overflow:hidden}
 .note-chip{padding:.12rem .38rem;border-radius:999px;background:var(--surface2);border:1px solid var(--border);font-size:.56rem;color:var(--text);white-space:nowrap}
-.midi-connect-btn{margin-left:auto;padding:.3rem .65rem;border-radius:999px;border:1px solid var(--border2);background:var(--surface2);color:var(--text);font-family:'DM Mono',monospace;font-size:.58rem;cursor:pointer;transition:all .12s;white-space:nowrap}
+.midi-kbd-wrap{display:flex;align-items:center;justify-content:center;min-width:0}
+.midi-kbd{width:100%;max-width:760px;background:var(--surface2);border:1px solid var(--border);border-radius:10px;padding:.45rem;display:flex;justify-content:center;min-height:88px}
+.midi-kbd svg{max-width:100%;height:auto;display:block}
+.midi-right{display:flex;align-items:center;justify-content:flex-end}
+.midi-connect-btn{padding:.42rem .78rem;border-radius:999px;border:1px solid var(--border2);background:var(--surface2);color:var(--text);font-family:'DM Mono',monospace;font-size:.58rem;cursor:pointer;transition:all .12s;white-space:nowrap}
 .midi-connect-btn:hover{border-color:var(--blue);color:var(--blue)}
 .midi-connect-btn.connected{border-color:var(--green);color:var(--green)}
+@media (max-width: 980px){
+  .midi-bar{grid-template-columns:1fr;gap:.6rem;padding:.7rem .9rem}
+  .midi-right{justify-content:flex-start}
+  .midi-chord{font-size:1.35rem}
+}
 
 /* ── SIDEBAR CONTROLS ── */
 .sec-label{font-size:.58rem;letter-spacing:.14em;text-transform:uppercase;color:var(--dim);padding-bottom:.3rem;border-bottom:1px solid var(--border);margin-bottom:.35rem}
@@ -525,11 +538,22 @@ input.tcb:checked+.tlbl .box::after{content:'✓';font-size:8px;color:var(--bg)}
 
 <!-- FIXED MIDI BAR -->
 <div class="midi-bar" id="midi-bar">
-  <span class="midi-bar-label">MIDI</span>
-  <span class="midi-status" id="midi-status">Not connected</span>
-  <span class="midi-chord" id="midi-chord-display"></span>
-  <div class="note-chip-row" id="midi-note-chips"></div>
-  <button class="midi-connect-btn" id="btn-midi-bar">Connect</button>
+  <div class="midi-left">
+    <span class="midi-bar-label">Live MIDI</span>
+    <span class="midi-status" id="midi-status">Not connected</span>
+    <span class="midi-substatus" id="midi-substatus">Connect a keyboard to show held notes, chord name, and keyboard display.</span>
+  </div>
+  <div class="midi-center">
+    <span class="midi-chord" id="midi-chord-display">—</span>
+    <div class="midi-notes-text" id="midi-notes-text"></div>
+    <div class="note-chip-row" id="midi-note-chips"></div>
+  </div>
+  <div class="midi-kbd-wrap">
+    <div class="midi-kbd" id="midi-kbd"></div>
+  </div>
+  <div class="midi-right">
+    <button class="midi-connect-btn" id="btn-midi-bar">Connect</button>
+  </div>
 </div>
 
 <script>
@@ -614,6 +638,24 @@ const CHORD_GROUPS=[
     {name:'Dominant 13', sym:'13',    tag:'dom', iv:[0,4,7,10,14,17,21]},
     {name:'Minor 13',    sym:'m13',   tag:'min', iv:[0,3,7,10,14,17,21]},
     {name:'Dom 13b9',    sym:'13b9',  tag:'dom', iv:[0,4,7,10,13,17,21]},
+  ]},
+  {group:'Added Tone / 6th',chords:[
+    {name:'6',          sym:'6',      tag:'maj', iv:[0,4,7,9]},
+    {name:'m6',         sym:'m6',     tag:'min', iv:[0,3,7,9]},
+    {name:'6/9',        sym:'6/9',    tag:'ext', iv:[0,4,7,9,14]},
+    {name:'m6/9',       sym:'m6/9',   tag:'ext', iv:[0,3,7,9,14]},
+    {name:'Add 2',      sym:'add2',   tag:'maj', iv:[0,2,4,7]},
+    {name:'mAdd 2',     sym:'madd2',  tag:'min', iv:[0,2,3,7]},
+    {name:'Add 4',      sym:'add4',   tag:'maj', iv:[0,4,5,7]},
+    {name:'mAdd 4',     sym:'madd4',  tag:'min', iv:[0,3,5,7]},
+  ]},
+  {group:'Altered Dominant / Other',chords:[
+    {name:'7b5',        sym:'7b5',    tag:'dom', iv:[0,4,6,10]},
+    {name:'7#5',        sym:'7#5',    tag:'dom', iv:[0,4,8,10]},
+    {name:'maj7b5',     sym:'maj7b5', tag:'ext', iv:[0,4,6,11]},
+    {name:'maj7#5',     sym:'maj7#5', tag:'ext', iv:[0,4,8,11]},
+    {name:'m7b5',       sym:'m7b5',   tag:'dim', iv:[0,3,6,10]},
+    {name:'sus2add4',   sym:'sus2add4', tag:'maj', iv:[0,2,5,7]},
   ]},
 ];
 const CHORD_MAP={};
@@ -921,34 +963,108 @@ function handleTap(){
 let midiAccess=null;
 let liveVoices=new Map();
 
+function getPitchClassSet(notes){
+  return [...new Set(notes.map(n=>((n%12)+12)%12))].sort((a,b)=>a-b);
+}
+
+function buildMidiMonitorSVG(notes,detectedRootPc=null){
+  if(!notes.length){
+    return `<svg width="720" height="78" viewBox="0 0 720 78" xmlns="http://www.w3.org/2000/svg"><text x="360" y="44" text-anchor="middle" fill="currentColor" opacity="0.45" font-size="14" font-family="DM Mono, monospace">Play notes on your MIDI keyboard</text></svg>`;
+  }
+  const sorted=[...notes].sort((a,b)=>a-b);
+  const start=Math.max(24, sorted[0]-6);
+  const end=Math.min(108, sorted[sorted.length-1]+6);
+  const startOct=Math.floor(start/12);
+  const endOct=Math.floor(end/12);
+  const START=startOct*12;
+  const NUM_OCT=Math.max(2, endOct-startOct+1);
+  const REAL_END=START+NUM_OCT*12-1;
+  const W=18,WH=70,BW=11,BH=42,PAD=2;
+  const svgW=NUM_OCT*7*W+PAD*2, svgH=WH+6;
+  const held=new Set(sorted);
+  function wX(m){const ro=Math.floor((m-START)/12),s=(m-START)%12;return PAD+(ro*7+WIO.indexOf(s))*W}
+  function bX(m){const ro=Math.floor((m-START)/12),s=(m-START)%12;return PAD+(ro*7+BWU[s])*W}
+  function isBlk(m){return !WIO.includes((m-START+1200)%12)}
+  let wh='',bk='',lb='';
+  for(let m=START;m<=REAL_END;m++){
+    if(isBlk(m))continue;
+    const pc=(m%12+12)%12;
+    const on=held.has(m);
+    const isRoot=on && detectedRootPc!==null && pc===detectedRootPc;
+    const fill=on?(isRoot?'#e8a030':'#acd6e8'):'#f0ede6';
+    const stroke=on?(isRoot?'#b57416':'#6ea9bf'):'#b0a898';
+    const x=wX(m);
+    wh+=`<rect x="${x}" y="${PAD}" width="${W-1}" height="${WH}" rx="3" fill="${fill}" stroke="${stroke}" stroke-width="0.8"/>`;
+    if(on){
+      const nm=nLabel(pc,'C');
+      lb+=`<text x="${x+(W-1)/2}" y="${WH-7}" text-anchor="middle" fill="#111827" font-size="7" font-family="DM Mono, monospace" font-weight="700">${nm}</text>`;
+    }
+  }
+  for(let m=START;m<=REAL_END;m++){
+    if(!isBlk(m))continue;
+    const pc=(m%12+12)%12;
+    const on=held.has(m);
+    const isRoot=on && detectedRootPc!==null && pc===detectedRootPc;
+    const fill=on?(isRoot?'#e8a030':'#3a7a92'):'#1a1a1e';
+    const stroke=on?(isRoot?'#b57416':'#1f4c5d'):'#111';
+    const x=bX(m);
+    bk+=`<rect x="${x}" y="${PAD}" width="${BW}" height="${BH}" rx="2" fill="${fill}" stroke="${stroke}" stroke-width="0.8"/>`;
+    if(on){
+      const nm=nLabel(pc,'C');
+      lb+=`<text x="${x+BW/2}" y="${BH-5}" text-anchor="middle" fill="${isRoot?'#111827':'#d8f0f8'}" font-size="6" font-family="DM Mono, monospace" font-weight="700">${nm}</text>`;
+    }
+  }
+  return `<svg width="${svgW}" height="${svgH}" viewBox="0 0 ${svgW} ${svgH}" xmlns="http://www.w3.org/2000/svg">${wh}${bk}${lb}</svg>`;
+}
+
 function detectHeldChord(){
   if(!S.heldMidiNotes.length)return null;
-  const pcs=[...new Set(S.heldMidiNotes.map(n=>((n%12)+12)%12))].sort((a,b)=>a-b);
+  const pcs=getPitchClassSet(S.heldMidiNotes);
+  let best=null;
   for(const candidate of pcs){
     const rel=pcs.map(pc=>(pc-candidate+12)%12).sort((a,b)=>a-b);
-    const chord=CHORD_BY_SIG[rel.join(',')];
-    if(chord)return`${nLabel(candidate,'C')}${chord.sym||''}`;
+    for(const chord of Object.values(CHORD_MAP)){
+      const expected=[...new Set(chord.iv.map(v=>((v%12)+12)%12))].sort((a,b)=>a-b);
+      const missing=expected.filter(v=>!rel.includes(v));
+      const extra=rel.filter(v=>!expected.includes(v));
+      const exact=missing.length===0&&extra.length===0;
+      const allowOmittedFifth=expected.length>=4 && missing.length===1 && extra.length===0 && (missing[0]===7 || missing[0]===5);
+      if(!exact && !allowOmittedFifth) continue;
+      const score=(exact?100:84)+expected.length-(missing.length*3)-(extra.length*5);
+      if(!best || score>best.score){
+        best={label:`${nLabel(candidate,'C')}${chord.sym||''}`,rootPc:candidate,chord,score,pcs};
+      }
+    }
   }
-  return null;
+  if(best)return best;
+  return {label: pcs.map(pc=>nLabel(pc,'C')).join(' · '), rootPc: pcs[0], chord:null, score:0, pcs};
 }
 
 function updateMidiBar(){
   const status=document.getElementById('midi-status');
+  const sub=document.getElementById('midi-substatus');
   const chordDisp=document.getElementById('midi-chord-display');
+  const noteText=document.getElementById('midi-notes-text');
   const chips=document.getElementById('midi-note-chips');
+  const keyboard=document.getElementById('midi-kbd');
   const connectBtn=document.getElementById('btn-midi-bar');
 
   if(S.midiEnabled){
     if(status) status.textContent=`${S.midiDeviceName||'Connected'} · ${S.heldMidiNotes.length} held`;
+    if(sub) sub.textContent='Chord name stays visible across every mode. Root notes are highlighted in gold on the keyboard.';
     if(connectBtn){connectBtn.textContent='Connected';connectBtn.classList.add('connected')}
   } else {
     if(status) status.textContent='Not connected';
+    if(sub) sub.textContent='Connect a keyboard to show held notes, chord name, and keyboard display.';
     if(connectBtn){connectBtn.textContent='Connect';connectBtn.classList.remove('connected')}
   }
 
-  const chord=detectHeldChord();
-  if(chordDisp) chordDisp.textContent=chord||'';
-  if(chips) chips.innerHTML=S.heldMidiNotes.slice(-8).map(n=>`<span class="note-chip">${nLabel(n%12,'C')}${Math.floor(n/12)-1}</span>`).join('');
+  const detection=detectHeldChord();
+  if(chordDisp) chordDisp.textContent=detection?detection.label:'—';
+  const namedNotes=S.heldMidiNotes.map(n=>`${nLabel(n%12,'C')}${Math.floor(n/12)-1}`);
+  if(noteText) noteText.textContent=namedNotes.length?namedNotes.join('  ·  '):'';
+  if(chips) chips.innerHTML=namedNotes.map(n=>`<span class="note-chip">${n}</span>`).join('');
+  if(keyboard) keyboard.innerHTML=buildMidiMonitorSVG(S.heldMidiNotes, detection?detection.rootPc:null);
 }
 
 function handleMidiMessage(e){
