@@ -13,6 +13,14 @@
   --blue:#7eb8c8; --pink:#c87e9a; --green:#7ec8a0;
   --text:#e8e6e0; --dim:#777;
   --shadow:rgba(0,0,0,.16);
+  /* piano key colors */
+  --key-white-bg:#f0ede6; --key-white-border:#b0a898;
+  --key-black-bg:#1a1a1e; --key-black-border:#111;
+  --key-scale-white:#c8dde8; --key-scale-white-border:#7aafc0;
+  --key-scale-black:#2a6070; --key-scale-black-border:#4a90a8;
+  --key-hl-white:#acd6e8; --key-hl-black:#3a7a92;
+  --key-root:#e8a030; --key-root-border:#b57416;
+  --key-label-white:#0e1214; --key-label-black-hl:#d8f0f8;
 }
 body.theme-light{
   --bg:#f7f5ef; --surface:#fffdf8; --surface2:#f2efe8; --surface3:#ebe6dc;
@@ -21,6 +29,13 @@ body.theme-light{
   --blue:#4f8094; --pink:#a86b83; --green:#55896d;
   --text:#241f19; --dim:#72685b;
   --shadow:rgba(36,31,25,.08);
+  --key-white-bg:#faf8f4; --key-white-border:#b8ad9e;
+  --key-black-bg:#2e261e; --key-black-border:#1a110a;
+  --key-scale-white:#e0d4b8; --key-scale-white-border:#b09060;
+  --key-scale-black:#6a4e28; --key-scale-black-border:#a07840;
+  --key-hl-white:#f0c870; --key-hl-black:#a07820;
+  --key-root:#d07010; --key-root-border:#904800;
+  --key-label-white:#241f19; --key-label-black-hl:#f8e8c0;
 }
 body.theme-slate{
   --bg:#11161b; --surface:#182028; --surface2:#202a34; --surface3:#293543;
@@ -29,6 +44,13 @@ body.theme-slate{
   --blue:#8fb4c7; --pink:#c292aa; --green:#86c1a2;
   --text:#e7edf2; --dim:#95a3af;
   --shadow:rgba(0,0,0,.18);
+  --key-white-bg:#e8eef2; --key-white-border:#8fa8bc;
+  --key-black-bg:#1a2230; --key-black-border:#0e1520;
+  --key-scale-white:#b8d0e4; --key-scale-white-border:#5a8aaa;
+  --key-scale-black:#1e4060; --key-scale-black-border:#3a6888;
+  --key-hl-white:#8abcdc; --key-hl-black:#2a6090;
+  --key-root:#c8a030; --key-root-border:#906010;
+  --key-label-white:#0e1520; --key-label-black-hl:#c8e4f8;
 }
 body.theme-sepia{
   --bg:#f2ece3; --surface:#fbf7f1; --surface2:#efe5d9; --surface3:#e6d8c8;
@@ -37,13 +59,20 @@ body.theme-sepia{
   --blue:#6e8ea1; --pink:#b47b89; --green:#6b9a7b;
   --text:#2c241b; --dim:#7a6a59;
   --shadow:rgba(44,36,27,.10);
+  /* sepia piano: warm ivory whites, rich espresso blacks, amber highlights */
+  --key-white-bg:#2c1e12; --key-white-border:#c4aa88;
+  --key-black-bg:#2c1e12; --key-black-border:#180f08;
+  --key-scale-white:#5c3a18; --key-scale-white-border:#a08050;
+  --key-scale-black:#5c3a18; --key-scale-black-border:#8a6030;
+  --key-hl-white:#e8c070; --key-hl-black:#a07820;
+  --key-root:#c06810; --key-root-border:#883800;
+  --key-label-white:#2c1e12; --key-label-black-hl:#f8e8c0;
 }
 *{box-sizing:border-box;margin:0;padding:0}
 html,body{height:100%}
 body{
   background:var(--bg);color:var(--text);font-family:'DM Mono',monospace;
   display:flex;flex-direction:column;
-  /* reserve space for fixed bottom bar */
   padding-bottom:152px;
 }
 
@@ -57,7 +86,7 @@ header h1{font-family:'Playfair Display',serif;font-size:1.2rem;color:var(--gold
 .sub{font-size:.58rem;color:var(--dim);letter-spacing:.12em;text-transform:uppercase;white-space:nowrap}
 .header-modes{display:flex;gap:.22rem;flex-wrap:wrap}
 
-/* ── METRONOME IN HEADER ── */
+/* ── METRONOME ── */
 .metro-group{display:flex;align-items:center;gap:.4rem;background:var(--surface2);border:1px solid var(--border);border-radius:6px;padding:.3rem .6rem;margin-left:.2rem}
 .metro-bpm-input{width:46px;background:transparent;border:none;color:var(--text);font-family:'DM Mono',monospace;font-size:.72rem;text-align:center;outline:none}
 .metro-bpm-input::-webkit-inner-spin-button,.metro-bpm-input::-webkit-outer-spin-button{-webkit-appearance:none}
@@ -82,12 +111,7 @@ header h1{font-family:'Playfair Display',serif;font-size:1.2rem;color:var(--gold
 .settings-drawer.open{display:flex}
 
 /* ── LAYOUT ── */
-.app{
-  display:flex;flex:1;overflow:hidden;
-  min-height:0; /* crucial for flex children to scroll */
-}
-
-/* SIDEBAR with collapse support */
+.app{display:flex;flex:1;overflow:hidden;min-height:0;}
 .sidebar{
   width:272px;min-width:272px;
   background:var(--surface);border-right:1px solid var(--border);
@@ -96,11 +120,7 @@ header h1{font-family:'Playfair Display',serif;font-size:1.2rem;color:var(--gold
   transition:width .2s,min-width .2s,padding .2s,opacity .18s;
   position:relative;
 }
-.sidebar.collapsed{
-  width:0;min-width:0;padding:0;overflow:hidden;opacity:0;pointer-events:none;
-}
-
-/* Collapse toggle tab — sits on the border between sidebar and main */
+.sidebar.collapsed{width:0;min-width:0;padding:0;overflow:hidden;opacity:0;pointer-events:none;}
 .sidebar-toggle{
   position:absolute;left:272px;top:50%;transform:translateY(-50%);
   width:18px;height:48px;
@@ -112,10 +132,9 @@ header h1{font-family:'Playfair Display',serif;font-size:1.2rem;color:var(--gold
 }
 .sidebar-toggle:hover{background:var(--surface3);color:var(--gold)}
 .sidebar-toggle.collapsed-state{left:0;border-left:1px solid var(--border2);border-radius:6px}
-
 .main{flex:1;overflow-y:auto;padding:1.2rem;position:relative}
 
-/* ── FIXED MIDI BAR (bottom) ── */
+/* ── FIXED MIDI BAR ── */
 .midi-bar{
   position:fixed;bottom:0;left:0;right:0;min-height:152px;
   background:var(--surface);border-top:1px solid var(--border);
@@ -147,35 +166,29 @@ header h1{font-family:'Playfair Display',serif;font-size:1.2rem;color:var(--gold
 /* ── SIDEBAR CONTROLS ── */
 .sec-label{font-size:.58rem;letter-spacing:.14em;text-transform:uppercase;color:var(--dim);padding-bottom:.3rem;border-bottom:1px solid var(--border);margin-bottom:.35rem}
 .sec{display:flex;flex-direction:column;gap:.45rem}
-
 .tab-row{display:flex;gap:.22rem;flex-wrap:wrap}
 .tbtn{flex:1;min-width:fit-content;padding:.35rem .35rem;background:var(--surface2);border:1px solid var(--border);border-radius:4px;color:var(--dim);font-family:'DM Mono',monospace;font-size:.62rem;cursor:pointer;transition:all .13s;text-align:center;letter-spacing:.04em;white-space:nowrap}
 .tbtn.on{background:var(--gold);color:var(--bg);border-color:var(--gold);font-weight:500}
 .tbtn:hover:not(.on){border-color:var(--gold);color:var(--text)}
-
 .key-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:.22rem}
 .kbtn{padding:.32rem .15rem;background:var(--surface2);border:1px solid var(--border);border-radius:4px;color:var(--dim);font-family:'DM Mono',monospace;font-size:.7rem;cursor:pointer;transition:all .13s;text-align:center}
 .kbtn.on{background:var(--blue);color:var(--bg);border-color:var(--blue);font-weight:500}
 .kbtn:hover:not(.on){border-color:var(--blue);color:var(--text)}
-
 .ctype-wrap{display:flex;flex-direction:column;gap:.18rem;max-height:200px;overflow-y:auto}
 .ctype-group-label{font-size:.52rem;letter-spacing:.1em;text-transform:uppercase;color:var(--dim);padding:.3rem .35rem .12rem;opacity:.65}
 .ctbtn{padding:.32rem .5rem;background:var(--surface2);border:1px solid var(--border);border-radius:4px;color:var(--dim);font-family:'DM Mono',monospace;font-size:.67rem;cursor:pointer;transition:all .13s;text-align:left;display:flex;justify-content:space-between;align-items:center}
 .ctbtn.on{background:var(--pink);color:var(--bg);border-color:var(--pink)}
 .ctbtn:hover:not(.on){border-color:var(--pink);color:var(--text)}
 .ctbtn .sym{opacity:.5;font-size:.58rem}
-
 .inv-row{display:flex;gap:.22rem;flex-wrap:wrap}
 .ibtn{padding:.28rem .45rem;background:var(--surface2);border:1px solid var(--border);border-radius:4px;color:var(--dim);font-family:'DM Mono',monospace;font-size:.63rem;cursor:pointer;transition:all .13s}
 .ibtn.on{background:var(--gold);color:var(--bg);border-color:var(--gold)}
 .ibtn:hover:not(.on){border-color:var(--gold);color:var(--text)}
-
 select.sel{background:var(--surface2);border:1px solid var(--border);border-radius:4px;color:var(--text);font-family:'DM Mono',monospace;font-size:.68rem;padding:.35rem .5rem;outline:none;transition:border-color .13s;appearance:none;-webkit-appearance:none;width:100%;cursor:pointer}
 select.sel:focus{border-color:var(--gold)}
 .prog-input{background:var(--surface2);border:1px solid var(--border);border-radius:4px;color:var(--text);font-family:'DM Mono',monospace;font-size:.73rem;padding:.4rem .55rem;width:100%;outline:none;transition:border-color .13s}
 .prog-input:focus{border-color:var(--gold)}
 .hint{font-size:.56rem;color:var(--dim);line-height:1.65}
-
 .abtn{padding:.45rem .7rem;border-radius:4px;font-family:'DM Mono',monospace;font-size:.65rem;letter-spacing:.06em;cursor:pointer;transition:all .13s;border:1px solid;text-transform:uppercase}
 .abtn.pri{background:var(--gold);color:var(--bg);border-color:var(--gold)}
 .abtn.pri:hover{background:var(--gold2)}
@@ -183,16 +196,15 @@ select.sel:focus{border-color:var(--gold)}
 .abtn.sec:hover{background:rgba(200,169,110,.1)}
 .abtn.sml{font-size:.58rem;padding:.3rem .5rem}
 .btn-row{display:flex;gap:.35rem;flex-wrap:wrap}
-
 input.tcb{display:none}
 .tlbl{display:flex;align-items:center;gap:.4rem;cursor:pointer;font-size:.65rem;color:var(--dim);user-select:none}
 .tlbl .box{width:13px;height:13px;border:1px solid var(--border);border-radius:2px;background:var(--surface2);display:inline-flex;align-items:center;justify-content:center;transition:all .11s;flex-shrink:0}
 input.tcb:checked+.tlbl .box{background:var(--gold);border-color:var(--gold)}
 input.tcb:checked+.tlbl .box::after{content:'✓';font-size:8px;color:var(--bg)}
-
 .panel{display:none;flex-direction:column;gap:.85rem}
 .panel.vis{display:flex}
 .sidebar-sep{height:1px;background:var(--border);margin:.1rem 0}
+.inline-row{display:flex;gap:.45rem;align-items:center;flex-wrap:wrap}
 
 /* ── CHORD CARDS ── */
 .chord-grid{display:flex;flex-wrap:wrap;gap:1.1rem;align-content:flex-start}
@@ -204,7 +216,6 @@ input.tcb:checked+.tlbl .box::after{content:'✓';font-size:8px;color:var(--bg)}
 .card-sub{font-size:.56rem;color:var(--dim);letter-spacing:.07em}
 .card-notes{font-size:.6rem;color:var(--dim);letter-spacing:.04em}
 .play-hint{color:var(--gold);font-size:.52rem;opacity:.6;letter-spacing:.06em}
-
 .tag{display:inline-block;padding:.1rem .33rem;border-radius:3px;font-size:.53rem;letter-spacing:.08em;text-transform:uppercase}
 .tag-maj{background:rgba(126,184,200,.12);color:var(--blue);border:1px solid rgba(126,184,200,.25)}
 .tag-min{background:rgba(200,126,154,.12);color:var(--pink);border:1px solid rgba(200,126,154,.25)}
@@ -212,14 +223,35 @@ input.tcb:checked+.tlbl .box::after{content:'✓';font-size:8px;color:var(--bg)}
 .tag-aug{background:rgba(126,200,160,.12);color:var(--green);border:1px solid rgba(126,200,160,.25)}
 .tag-dom{background:rgba(200,126,100,.12);color:#c87060;border:1px solid rgba(200,126,100,.25)}
 .tag-ext{background:rgba(160,126,200,.12);color:#a07ec8;border:1px solid rgba(160,126,200,.25)}
-
 .empty{text-align:center;color:var(--dim);margin-top:5rem;font-size:.75rem;line-height:2.2;width:100%}
 .empty .big{font-family:'Playfair Display',serif;font-size:2rem;color:var(--border2);display:block;margin-bottom:.4rem}
-
-/* toolbar (play scale etc) */
 .toolbar{display:flex;gap:.6rem;flex-wrap:wrap;align-items:center;margin-bottom:.9rem}
 .mini-btn{padding:.38rem .65rem;border-radius:999px;border:1px solid var(--border2);background:var(--surface);color:var(--text);font-family:'DM Mono',monospace;font-size:.62rem;cursor:pointer;transition:all .13s;box-shadow:0 2px 8px var(--shadow)}
 .mini-btn:hover{border-color:var(--gold);color:var(--gold)}
+
+/* ── SCALE MODE ── */
+.scale-wrap{display:flex;flex-direction:column;gap:1.2rem;width:100%}
+.scale-header{display:flex;align-items:baseline;gap:1rem;flex-wrap:wrap;margin-bottom:.2rem}
+.scale-header h2{font-family:'Playfair Display',serif;font-size:1.2rem;color:var(--gold)}
+.scale-header .sc-sub{font-size:.62rem;color:var(--dim);letter-spacing:.08em}
+.scale-info-box{background:var(--surface);border:1px solid var(--border);border-radius:8px;padding:.8rem 1rem;display:flex;flex-direction:column;gap:.5rem}
+.scale-formula-row{display:flex;gap:.2rem;flex-wrap:wrap;align-items:center}
+.scale-degree{display:flex;flex-direction:column;align-items:center;gap:.12rem;padding:.18rem .3rem;border-radius:4px;cursor:pointer;transition:background .14s,transform .12s;user-select:none}
+.scale-degree:hover{transform:scale(1.08)}
+.scale-degree.is-root{background:rgba(192,104,16,.15)}
+.scale-degree.is-scale{background:rgba(110,142,161,.08)}
+.scale-deg-note{font-family:'Playfair Display',serif;font-size:.95rem;font-weight:700;min-width:20px;text-align:center}
+.scale-deg-note.is-root{color:var(--key-root)}
+.scale-deg-note.is-scale{color:var(--blue)}
+.scale-deg-num{font-size:.48rem;color:var(--dim);letter-spacing:.04em}
+.scale-deg-sep{font-size:.65rem;color:var(--border2);align-self:flex-start;margin-top:.45rem;padding:0 .1rem}
+.scale-keyboard-wrap{background:var(--surface);border:1px solid var(--border);border-radius:10px;padding:.8rem;overflow-x:auto}
+.scale-keyboard-wrap svg{display:block;margin:0 auto}
+.scale-note-list{display:flex;flex-wrap:wrap;gap:.4rem}
+.snote-chip{padding:.2rem .5rem;border-radius:5px;background:var(--surface2);border:1px solid var(--border2);font-size:.65rem;color:var(--text);cursor:pointer;transition:all .13s;font-family:'DM Mono',monospace;display:flex;align-items:center;gap:.3rem}
+.snote-chip:hover{border-color:var(--gold);color:var(--gold)}
+.snote-chip.is-root{background:rgba(192,104,16,.15);border-color:var(--key-root);color:var(--key-root)}
+.snote-chip .deg-badge{font-size:.5rem;color:var(--dim);background:var(--surface3);padding:.05rem .22rem;border-radius:3px}
 
 /* ── SCALE+CHORD OVERLAY ── */
 .sc-wrap{display:flex;flex-direction:column;gap:1.2rem;width:100%}
@@ -275,10 +307,6 @@ input.tcb:checked+.tlbl .box::after{content:'✓';font-size:8px;color:var(--bg)}
 .play-prog-btn{padding:.5rem 1.1rem;background:var(--gold);color:var(--bg);border:none;border-radius:5px;font-family:'DM Mono',monospace;font-size:.67rem;letter-spacing:.06em;text-transform:uppercase;cursor:pointer;transition:background .13s}
 .play-prog-btn:hover{background:var(--gold2)}
 
-/* settings inline controls */
-.inline-row{display:flex;gap:.45rem;align-items:center;flex-wrap:wrap}
-.num-input{width:76px;background:var(--surface2);border:1px solid var(--border);border-radius:6px;color:var(--text);font-family:'DM Mono',monospace;font-size:.68rem;padding:.34rem .45rem}
-
 ::-webkit-scrollbar{width:4px;height:4px}
 ::-webkit-scrollbar-track{background:transparent}
 ::-webkit-scrollbar-thumb{background:var(--border2);border-radius:2px}
@@ -286,21 +314,17 @@ input.tcb:checked+.tlbl .box::after{content:'✓';font-size:8px;color:var(--bg)}
 </head>
 <body>
 
-<!-- HEADER -->
 <header>
   <h1>Piano Chord Reference</h1>
   <span class="sub">Chords · Scales · Modes</span>
-
-  <!-- Mode tabs -->
   <div class="header-modes">
-    <button class="tbtn on" data-mode="diatonic">Diatonic</button>
-    <button class="tbtn" data-mode="browser">Browser</button>
+    <button class="tbtn on" data-mode="diatonic">Harmonize</button>
+    <button class="tbtn" data-mode="browser">Circles</button>
+    <button class="tbtn" data-mode="scaleview">Scales</button>
     <button class="tbtn" data-mode="progression">Progression</button>
     <button class="tbtn" data-mode="overlay">Scale+Chord</button>
     <button class="tbtn" data-mode="builder">Builder</button>
   </div>
-
-  <!-- Metronome — always visible in header -->
   <div class="metro-group">
     <span class="metro-label">BPM</span>
     <input class="metro-bpm-input" id="metro-bpm" type="number" min="30" max="240" value="92">
@@ -309,13 +333,11 @@ input.tcb:checked+.tlbl .box::after{content:'✓';font-size:8px;color:var(--bg)}
     <button class="metro-btn" id="btn-metronome" title="Start/Stop metronome">▶</button>
     <button class="metro-tap-btn" id="btn-tap">TAP</button>
   </div>
-
   <div class="header-right">
     <button class="settings-btn" id="btn-settings">⚙ Settings</button>
   </div>
 </header>
 
-<!-- SETTINGS DRAWER -->
 <div class="settings-drawer" id="settings-drawer">
   <div class="sec">
     <div class="sec-label">Theme</div>
@@ -323,7 +345,7 @@ input.tcb:checked+.tlbl .box::after{content:'✓';font-size:8px;color:var(--bg)}
       <option value="dark">Dark</option>
       <option value="light">Light</option>
       <option value="slate">Slate</option>
-      <option value="sepia">Sepia</option>
+      <option value="sepia" selected>Sepia</option>
     </select>
   </div>
   <div class="sec">
@@ -335,24 +357,20 @@ input.tcb:checked+.tlbl .box::after{content:'✓';font-size:8px;color:var(--bg)}
     <div class="inline-row">
       <button class="abtn sec sml" id="btn-midi">Connect MIDI</button>
     </div>
-    <div class="hint">Connect a USB MIDI keyboard — held notes and chord detection appear in the bar at the bottom of the screen.</div>
+    <div class="hint">Connect a USB MIDI keyboard — held notes and chord detection appear in the bar at the bottom.</div>
   </div>
 </div>
 
-<!-- MAIN APP -->
 <div class="app" id="app-layout">
-
-  <!-- SIDEBAR -->
   <aside class="sidebar" id="sidebar">
 
-    <!-- Generate/Clear at top -->
     <div id="gen-btns" class="btn-row">
       <button class="abtn pri" id="btn-generate">Generate</button>
       <button class="abtn sec" id="btn-clear">Clear</button>
     </div>
     <div class="sidebar-sep"></div>
 
-    <!-- DIATONIC -->
+    <!-- HARMONIZE (was Diatonic) -->
     <div class="panel vis" id="p-diatonic">
       <div class="sec"><div class="sec-label">Root Key</div><div class="key-grid" id="kg-diatonic"></div></div>
       <div class="sec">
@@ -384,7 +402,7 @@ input.tcb:checked+.tlbl .box::after{content:'✓';font-size:8px;color:var(--bg)}
       </div>
     </div>
 
-    <!-- BROWSER -->
+    <!-- CIRCLES (was Browser) -->
     <div class="panel" id="p-browser">
       <div class="sec"><div class="sec-label">Chord Type</div><div class="ctype-wrap" id="ctype-list"></div></div>
       <div class="sec">
@@ -400,6 +418,47 @@ input.tcb:checked+.tlbl .box::after{content:'✓';font-size:8px;color:var(--bg)}
         <div class="inv-row" id="inv-browser"></div>
         <input type="checkbox" class="tcb" id="rnd-browser">
         <label class="tlbl" for="rnd-browser"><span class="box"></span>Randomize inversions</label>
+      </div>
+    </div>
+
+    <!-- SCALES (new standalone scale view) -->
+    <div class="panel" id="p-scaleview">
+      <div class="sec"><div class="sec-label">Root Key</div><div class="key-grid" id="kg-scaleview"></div></div>
+      <div class="sec">
+        <div class="sec-label">Scale / Mode</div>
+        <select class="sel" id="sel-sv-scale">
+          <option value="major">Major (Ionian)</option>
+          <option value="dorian">Dorian</option>
+          <option value="phrygian">Phrygian</option>
+          <option value="lydian">Lydian</option>
+          <option value="mixolydian">Mixolydian</option>
+          <option value="minor">Natural Minor (Aeolian)</option>
+          <option value="locrian">Locrian</option>
+          <option value="harm_minor">Harmonic Minor</option>
+          <option value="mel_minor">Melodic Minor</option>
+          <option value="pent_maj">Pentatonic Major</option>
+          <option value="pent_min">Pentatonic Minor</option>
+          <option value="blues">Blues Scale</option>
+          <option value="whole">Whole Tone</option>
+          <option value="dim_wh">Diminished (W–H)</option>
+          <option value="dim_hw">Diminished (H–W)</option>
+          <option value="chrom">Chromatic</option>
+        </select>
+      </div>
+      <div class="sec">
+        <div class="sec-label">Playback</div>
+        <div class="inline-row" style="flex-wrap:wrap;gap:.35rem">
+          <select class="sel" id="sel-sv-octaves" style="width:auto;flex:1">
+            <option value="1">1 octave</option>
+            <option value="2" selected>2 octaves</option>
+            <option value="3">3 octaves</option>
+          </select>
+        </div>
+        <input type="checkbox" class="tcb" id="sv-play-down" checked>
+        <label class="tlbl" for="sv-play-down"><span class="box"></span>Play down after up</label>
+      </div>
+      <div class="sec">
+        <button class="abtn pri" id="btn-sv-generate" style="width:100%">Show Scale</button>
       </div>
     </div>
 
@@ -525,10 +584,8 @@ input.tcb:checked+.tlbl .box::after{content:'✓';font-size:8px;color:var(--bg)}
 
   </aside>
 
-  <!-- SIDEBAR TOGGLE TAB -->
   <div class="sidebar-toggle" id="sidebar-toggle" title="Toggle sidebar">‹</div>
 
-  <!-- MAIN CONTENT -->
   <main class="main" id="main-area">
     <div class="chord-grid" id="chord-grid">
       <div class="empty"><span class="big">♩</span>Select options and press Generate</div>
@@ -536,7 +593,6 @@ input.tcb:checked+.tlbl .box::after{content:'✓';font-size:8px;color:var(--bg)}
   </main>
 </div>
 
-<!-- FIXED MIDI BAR -->
 <div class="midi-bar" id="midi-bar">
   <div class="midi-left">
     <span class="midi-bar-label">Live MIDI</span>
@@ -675,13 +731,14 @@ const S={
   progKey:'C', progScale:'major', progStack:3,
   builderKey:'C', builderScale:'major', builderStack:3,
   ovKey:'C', ovScale:'major', ovChordType:'Major', ovStack:3,
+  svKey:'C', svScale:'major', svOctaves:2, svPlayDown:true,
   ovAllDegrees:true, ovShowScale:true, ovShowChord:true,
   diaInv:0, browInv:0, progInv:0, builderInv:0, ovInv:0,
   rndDia:false, rndBrow:false, rndProg:false, rndBuilder:false, rndOverlay:false,
   browserChordType:'Major', browserOrder:'c4ths',
   progText:'I IV V I',
   builderProg:[],
-  theme:'dark',
+  theme:'sepia',
   metronomeBpm:92,
   metronomeVolume:0.18,
   metronomeOn:false,
@@ -698,7 +755,6 @@ function intervalSig(iv){return iv.map(v=>((v%12)+12)%12).sort((a,b)=>a-b).join(
 const CHORD_BY_SIG={};
 Object.values(CHORD_MAP).forEach(c=>{CHORD_BY_SIG[intervalSig(c.iv)]=c});
 function getStackName(n){return['','','','Triad','7th','9th','11th','13th'][n]||'Chord'}
-function getInversionLabel(i){return['Root','1st','2nd','3rd'][i]||`${i}th`}
 function invLabel(i){return['Root pos.','1st inv.','2nd inv.','3rd inv.'][i]||`${i}th inv.`}
 
 function buildDiatonicOffsets(sc,degree,stackSize){
@@ -748,10 +804,13 @@ function getBuilderMaxInv(){return Math.max(0,S.builderStack-1)}
 function getOvMaxInv(){const ct=CHORD_MAP[S.ovChordType];return ct?Math.max(0,Math.min(ct.iv.length-1,S.ovStack-1)):0}
 
 // ══════════════════════════════════
-//  PIANO SVG — STANDARD
+//  PIANO SVG — reads CSS vars via computed style
 // ══════════════════════════════════
 const WIO=[0,2,4,5,7,9,11];
 const BWU={1:.67,3:1.67,6:3.67,8:4.67,10:5.67};
+
+// Read CSS variable values at call time (theme-aware)
+function cssVar(name){return getComputedStyle(document.body).getPropertyValue(name).trim()}
 
 function resolveToMidi(offsets,rootSemi){
   const sorted=[...offsets].sort((a,b)=>a-b);
@@ -771,6 +830,18 @@ function buildPianoSVG(offsets,key,rootSemi){
   const W=20,WH=82,BW=13,BH=52,PAD=2;
   const svgW=NUM_OCT*7*W+PAD*2, svgH=WH+16;
   const hlSet=new Set(midiNotes);
+
+  const cWhiteBg=cssVar('--key-white-bg');
+  const cWhiteBorder=cssVar('--key-white-border');
+  const cBlackBg=cssVar('--key-black-bg');
+  const cBlackBorder=cssVar('--key-black-border');
+  const cHlWhite=cssVar('--key-hl-white');
+  const cHlBlack=cssVar('--key-hl-black');
+  const cRoot=cssVar('--key-root');
+  const cRootBorder=cssVar('--key-root-border');
+  const cLabelWhite=cssVar('--key-label-white');
+  const cLabelBlackHl=cssVar('--key-label-black-hl');
+
   function wX(m){const ro=Math.floor((m-START)/12),s=(m-START)%12;return PAD+(ro*7+WIO.indexOf(s))*W}
   function bX(m){const ro=Math.floor((m-START)/12),s=(m-START)%12;return PAD+(ro*7+BWU[s])*W}
   function isBlk(m){return!WIO.includes((m-START+1200)%12)}
@@ -778,18 +849,91 @@ function buildPianoSVG(offsets,key,rootSemi){
   for(let m=START;m<=END;m++){
     if(isBlk(m))continue;
     const x=wX(m),hl=hlSet.has(m),isRoot=hl&&(m%12+12)%12===rootSemi;
-    const fill=hl?(isRoot?'#e8a030':'#acd6e8'):'#f0ede6';
-    wh+=`<rect x="${x}" y="${PAD}" width="${W-1}" height="${WH}" rx="3" fill="${fill}" stroke="#b0a898" stroke-width="0.7"/>`;
-    if(hl){const nm=nLabel(m%12,key);lb+=`<text x="${x+(W-1)/2}" y="${WH-6}" text-anchor="middle" fill="#0e1214" font-size="${nm.length>2?6.5:8}" font-family="DM Mono,monospace" font-weight="700">${nm}</text>`}
+    const fill=hl?(isRoot?cRoot:cHlWhite):cWhiteBg;
+    const stroke=hl?(isRoot?cRootBorder:cWhiteBorder):cWhiteBorder;
+    wh+=`<rect x="${x}" y="${PAD}" width="${W-1}" height="${WH}" rx="3" fill="${fill}" stroke="${stroke}" stroke-width="${hl?1.2:0.7}"/>`;
+    if(hl){const nm=nLabel(m%12,key);lb+=`<text x="${x+(W-1)/2}" y="${WH-6}" text-anchor="middle" fill="${cLabelWhite}" font-size="${nm.length>2?6.5:8}" font-family="DM Mono,monospace" font-weight="700">${nm}</text>`}
   }
   for(let m=START;m<=END;m++){
     if(!isBlk(m))continue;
     const x=bX(m),hl=hlSet.has(m),isRoot=hl&&(m%12+12)%12===rootSemi;
-    const fill=hl?(isRoot?'#e8a030':'#3a7a92'):'#1a1a1e';
-    bk+=`<rect x="${x}" y="${PAD}" width="${BW}" height="${BH}" rx="2" fill="${fill}" stroke="#111" stroke-width="0.7"/>`;
-    if(hl){const nm=nLabel(m%12,key);bk+=`<text x="${x+BW/2}" y="${BH-5}" text-anchor="middle" fill="${isRoot?'#0e1214':'#d8f0f8'}" font-size="${nm.length>2?5.5:7}" font-family="DM Mono,monospace" font-weight="700">${nm}</text>`}
+    const fill=hl?(isRoot?cRoot:cHlBlack):cBlackBg;
+    const stroke=hl?(isRoot?cRootBorder:cHlBlack):cBlackBorder;
+    bk+=`<rect x="${x}" y="${PAD}" width="${BW}" height="${BH}" rx="2" fill="${fill}" stroke="${stroke}" stroke-width="${hl?1.5:0.7}"/>`;
+    if(hl){const nm=nLabel(m%12,key);bk+=`<text x="${x+BW/2}" y="${BH-5}" text-anchor="middle" fill="${isRoot?cLabelWhite:cLabelBlackHl}" font-size="${nm.length>2?5.5:7}" font-family="DM Mono,monospace" font-weight="700">${nm}</text>`}
   }
   return`<svg width="${svgW}" height="${svgH}" viewBox="0 0 ${svgW} ${svgH}" xmlns="http://www.w3.org/2000/svg">${wh}${bk}${lb}</svg>`;
+}
+
+// ══════════════════════════════════
+//  PIANO SVG — SCALE VIEW (interactive, wider)
+// ══════════════════════════════════
+function buildScaleViewSVG(rootSemi, scaleIv, key, onNoteClick){
+  const NUM_OCT=2;
+  let rootMidi=60+rootSemi;
+  if(rootMidi>67)rootMidi-=12;
+  const startOct=Math.floor(rootMidi/12);
+  const START=startOct*12;
+  const REAL_END=START+NUM_OCT*12;
+
+  const W=32,WH=110,BW=20,BH=68,PAD=2;
+  const svgW=NUM_OCT*7*W+PAD*2, svgH=WH+6;
+  const scalePCs=new Set(scaleIv.map(o=>(rootSemi+o+1200)%12));
+
+  const cWhiteBg=cssVar('--key-white-bg');
+  const cWhiteBorder=cssVar('--key-white-border');
+  const cBlackBg=cssVar('--key-black-bg');
+  const cBlackBorder=cssVar('--key-black-border');
+  const cScaleWhite=cssVar('--key-scale-white');
+  const cScaleWhiteBorder=cssVar('--key-scale-white-border');
+  const cScaleBlack=cssVar('--key-scale-black');
+  const cScaleBlackBorder=cssVar('--key-scale-black-border');
+  const cRoot=cssVar('--key-root');
+  const cRootBorder=cssVar('--key-root-border');
+  const cLabelWhite=cssVar('--key-label-white');
+  const cLabelBlackHl=cssVar('--key-label-black-hl');
+
+  function wX(m){const ro=Math.floor((m-START)/12),s=(m-START)%12;return PAD+(ro*7+WIO.indexOf(s))*W}
+  function bX(m){const ro=Math.floor((m-START)/12),s=(m-START)%12;return PAD+(ro*7+BWU[s])*W}
+  function isBlk(m){return!WIO.includes((m-START+1200)%12)}
+
+  // We'll render as HTML so we can attach click events
+  let html=`<svg width="${svgW}" height="${svgH}" viewBox="0 0 ${svgW} ${svgH}" xmlns="http://www.w3.org/2000/svg" style="cursor:pointer">`;
+  let wh='',bk='',lb='';
+
+  for(let m=START;m<=REAL_END;m++){
+    if(isBlk(m))continue;
+    const pc=(m%12+12)%12;
+    const inScale=scalePCs.has(pc);
+    const isRoot=pc===rootSemi;
+    const fill=isRoot?cRoot:inScale?cScaleWhite:cWhiteBg;
+    const stroke=isRoot?cRootBorder:inScale?cScaleWhiteBorder:cWhiteBorder;
+    const x=wX(m);
+    wh+=`<rect data-midi="${m}" x="${x}" y="${PAD}" width="${W-1}" height="${WH}" rx="3" fill="${fill}" stroke="${stroke}" stroke-width="${inScale?1.5:0.7}" class="sv-key"/>`;
+    if(inScale){
+      const nm=nLabel(pc,key);
+      const degIdx=scaleIv.findIndex(o=>(rootSemi+o+1200)%12===pc);
+      const degLabel=degIdx>=0?['R','2','3','4','5','6','7','8','9'][degIdx]:'';
+      lb+=`<text x="${x+(W-1)/2}" y="${WH-20}" text-anchor="middle" fill="${isRoot?cLabelWhite:'#555'}" font-size="${nm.length>2?8:10}" font-family="DM Mono,monospace" font-weight="700" pointer-events="none">${nm}</text>`;
+      lb+=`<text x="${x+(W-1)/2}" y="${WH-8}" text-anchor="middle" fill="${isRoot?cLabelWhite:'#888'}" font-size="7" font-family="DM Mono,monospace" pointer-events="none">${degLabel}</text>`;
+    }
+  }
+  for(let m=START;m<=REAL_END;m++){
+    if(!isBlk(m))continue;
+    const pc=(m%12+12)%12;
+    const inScale=scalePCs.has(pc);
+    const isRoot=pc===rootSemi;
+    const fill=isRoot?cRoot:inScale?cScaleBlack:cBlackBg;
+    const stroke=isRoot?cRootBorder:inScale?cScaleBlackBorder:cBlackBorder;
+    const x=bX(m);
+    bk+=`<rect data-midi="${m}" x="${x}" y="${PAD}" width="${BW}" height="${BH}" rx="2" fill="${fill}" stroke="${stroke}" stroke-width="${inScale?1.5:0.7}" class="sv-key"/>`;
+    if(inScale){
+      const nm=nLabel(pc,key);
+      lb+=`<text x="${x+BW/2}" y="${BH-12}" text-anchor="middle" fill="${isRoot?cLabelWhite:cLabelBlackHl}" font-size="${nm.length>2?6:8}" font-family="DM Mono,monospace" font-weight="700" pointer-events="none">${nm}</text>`;
+    }
+  }
+  html+=wh+bk+lb+'</svg>';
+  return{svgW,svgH,html};
 }
 
 // ══════════════════════════════════
@@ -807,6 +951,20 @@ function buildOverlaySVG(rootSemi, scaleIv, chordOffsets, showScale, showChord){
   const scalePCs=new Set(scaleIv.map(o=>(rootSemi+o+1200)%12));
   const chordPCs=new Set();
   if(showChord&&chordOffsets) chordOffsets.forEach(o=>chordPCs.add((rootSemi+o+1200)%12));
+
+  const cWhiteBg=cssVar('--key-white-bg');
+  const cWhiteBorder=cssVar('--key-white-border');
+  const cBlackBg=cssVar('--key-black-bg');
+  const cBlackBorder=cssVar('--key-black-border');
+  const cScaleWhite=cssVar('--key-scale-white');
+  const cScaleWhiteBorder=cssVar('--key-scale-white-border');
+  const cScaleBlack=cssVar('--key-scale-black');
+  const cScaleBlackBorder=cssVar('--key-scale-black-border');
+  const cRoot=cssVar('--key-root');
+  const cRootBorder=cssVar('--key-root-border');
+  const cLabelWhite=cssVar('--key-label-white');
+  const cLabelBlackHl=cssVar('--key-label-black-hl');
+
   function wX(m){const ro=Math.floor((m-START)/12),s=(m-START)%12;return PAD+(ro*7+WIO.indexOf(s))*W}
   function bX(m){const ro=Math.floor((m-START)/12),s=(m-START)%12;return PAD+(ro*7+BWU[s])*W}
   function isBlk(m){return!WIO.includes((m-START+1200)%12)}
@@ -815,21 +973,21 @@ function buildOverlaySVG(rootSemi, scaleIv, chordOffsets, showScale, showChord){
     if(isBlk(m))continue;
     const pc=(m%12+12)%12;
     const inScale=showScale&&scalePCs.has(pc);
-    const fill=inScale?'#c8dde8':'#f0ede6';
-    const stroke=inScale?'#7aafc0':'#b0a898';
+    const fill=inScale?cScaleWhite:cWhiteBg;
+    const stroke=inScale?cScaleWhiteBorder:cWhiteBorder;
     const x=wX(m);
     wh+=`<rect x="${x}" y="${PAD}" width="${W-1}" height="${WH}" rx="3" fill="${fill}" stroke="${stroke}" stroke-width="${inScale?1.2:0.7}"/>`;
-    if(inScale){const nm=nLabel(pc,'C');lb+=`<text x="${x+(W-1)/2}" y="${WH-8}" text-anchor="middle" fill="#3a6070" font-size="${nm.length>2?6:7.5}" font-family="DM Mono,monospace" font-weight="600">${nm}</text>`}
+    if(inScale){const nm=nLabel(pc,key||'C');lb+=`<text x="${x+(W-1)/2}" y="${WH-8}" text-anchor="middle" fill="#3a6070" font-size="${nm.length>2?6:7.5}" font-family="DM Mono,monospace" font-weight="600">${nm}</text>`}
   }
   for(let m=START;m<=REAL_END;m++){
     if(!isBlk(m))continue;
     const pc=(m%12+12)%12;
     const inScale=showScale&&scalePCs.has(pc);
-    const fill=inScale?'#2a6070':'#1a1a1e';
-    const stroke=inScale?'#4a90a8':'#111';
+    const fill=inScale?cScaleBlack:cBlackBg;
+    const stroke=inScale?cScaleBlackBorder:cBlackBorder;
     const x=bX(m);
-    bk+=`<rect x="${x}" y="${PAD}" width="${BW}" height="${BH}" rx="2" fill="${fill}" stroke="${stroke}" stroke-width="${inScale?1.2:0.7}"/>`;
-    if(inScale){const nm=nLabel(pc,'C');bk+=`<text x="${x+BW/2}" y="${BH-6}" text-anchor="middle" fill="#a8d8e8" font-size="${nm.length>2?5:6.5}" font-family="DM Mono,monospace" font-weight="600">${nm}</text>`}
+    bk+=`<rect x="${x}" y="${PAD}" width="${BW}" height="${BH}" rx="2" fill="${fill}" stroke="${stroke}" stroke-width="${inScale?1.5:0.7}"/>`;
+    if(inScale){const nm=nLabel(pc,'C');bk+=`<text x="${x+BW/2}" y="${BH-6}" text-anchor="middle" fill="${cLabelBlackHl}" font-size="${nm.length>2?5:6.5}" font-family="DM Mono,monospace" font-weight="600">${nm}</text>`}
   }
   if(showChord){
     for(let m=START;m<=REAL_END;m++){
@@ -839,11 +997,11 @@ function buildOverlaySVG(rootSemi, scaleIv, chordOffsets, showScale, showChord){
       const blk=isBlk(m);
       if(blk){
         const x=bX(m),cx=x+BW/2,cy=BH-14,r=5;
-        dots+=isRoot?`<circle cx="${cx}" cy="${cy}" r="${r}" fill="#e8a030" stroke="#c07010" stroke-width="1"/>`:
+        dots+=isRoot?`<circle cx="${cx}" cy="${cy}" r="${r}" fill="${cRoot}" stroke="${cRootBorder}" stroke-width="1"/>`:
                      `<circle cx="${cx}" cy="${cy}" r="${r}" fill="white" stroke="#3a9cc8" stroke-width="1.8"/>`;
       } else {
         const x=wX(m),cx=x+(W-1)/2,cy=WH-20,r=6;
-        dots+=isRoot?`<circle cx="${cx}" cy="${cy}" r="${r}" fill="#e8a030" stroke="#c07010" stroke-width="1.2"/>`:
+        dots+=isRoot?`<circle cx="${cx}" cy="${cy}" r="${r}" fill="${cRoot}" stroke="${cRootBorder}" stroke-width="1.2"/>`:
                      `<circle cx="${cx}" cy="${cy}" r="${r}" fill="white" stroke="#3a9cc8" stroke-width="2"/>`;
       }
     }
@@ -887,18 +1045,33 @@ function playSingleMidi(midiNote,when,duration=.8,volume=.14){
   osc.connect(g);g.connect(ctx.destination);osc.start(when);osc.stop(when+duration+.02);
 }
 
-function playScale(rootName,scaleName,octaves=2){
-  const rootSemi=nIdx(rootName);
-  const iv=SCALES[scaleName].iv;
-  const base=60+rootSemi-(rootSemi>6?12:0);
-  const notes=[];
-  const beat=60/Math.max(30,S.metronomeBpm||92);
-  for(let o=0;o<octaves;o++) iv.forEach(s=>notes.push(base+s+o*12));
-  notes.push(base+octaves*12);
-  for(let i=octaves-1;i>=0;i--) for(let j=iv.length-2;j>=0;j--) notes.push(base+iv[j]+i*12);
+function playScaleMidi(rootSemi, scaleIv, octaves, playDown){
   const ctx=getACtx();
   if(ctx.state==='suspended')ctx.resume();
-  notes.forEach((m,i)=>playSingleMidi(m,ctx.currentTime+i*beat*.5,Math.max(.18,beat*.45),.13));
+  const base=60+rootSemi-(rootSemi>6?12:0);
+  const beat=60/Math.max(30,S.metronomeBpm||92);
+  const noteDur=Math.max(.18,beat*.45);
+
+  // Build ascending notes
+  const up=[];
+  for(let o=0;o<octaves;o++) scaleIv.forEach(s=>up.push(base+s+o*12));
+  up.push(base+octaves*12); // top note
+
+  // Build descending from second-to-top (don't repeat top)
+  const down=[];
+  if(playDown){
+    for(let i=up.length-2;i>=0;i--) down.push(up[i]);
+  }
+
+  const all=[...up,...down];
+  all.forEach((m,i)=>playSingleMidi(m,ctx.currentTime+i*beat*.5,noteDur,.13));
+}
+
+// Play a single note at a given midi number (for clicking keys)
+function playSingleNote(midi){
+  const ctx=getACtx();
+  if(ctx.state==='suspended')ctx.resume();
+  playSingleMidi(midi,ctx.currentTime,0.6,0.15);
 }
 
 // ══════════════════════════════════
@@ -906,7 +1079,6 @@ function playScale(rootName,scaleName,octaves=2){
 // ══════════════════════════════════
 let metronomeTimer=null;
 let tapTimes=[];
-
 function tickMetronome(){
   const ctx=getACtx();
   if(ctx.state==='suspended')ctx.resume();
@@ -917,43 +1089,25 @@ function tickMetronome(){
   g.gain.linearRampToValueAtTime(Math.max(0,Math.min(0.45,S.metronomeVolume||0.18)),now+.001);
   g.gain.exponentialRampToValueAtTime(.001,now+.06);
   osc.connect(g);g.connect(ctx.destination);osc.start(now);osc.stop(now+.07);
-  // flash the button
   const btn=document.getElementById('btn-metronome');
   if(btn){btn.style.color='var(--gold)';setTimeout(()=>{btn.style.color=''},80)}
 }
-
-function stopMetronome(){
-  if(metronomeTimer){clearInterval(metronomeTimer);metronomeTimer=null;}
-  S.metronomeOn=false;updateMetroUI();savePrefs();
-}
-function startMetronome(){
-  stopMetronome();tickMetronome();
-  const ms=60000/Math.max(30,S.metronomeBpm||92);
-  metronomeTimer=setInterval(tickMetronome,ms);
-  S.metronomeOn=true;updateMetroUI();savePrefs();
-}
+function stopMetronome(){if(metronomeTimer){clearInterval(metronomeTimer);metronomeTimer=null;}S.metronomeOn=false;updateMetroUI();savePrefs()}
+function startMetronome(){stopMetronome();tickMetronome();const ms=60000/Math.max(30,S.metronomeBpm||92);metronomeTimer=setInterval(tickMetronome,ms);S.metronomeOn=true;updateMetroUI();savePrefs()}
 function toggleMetronome(){S.metronomeOn?stopMetronome():startMetronome()}
 function updateMetroUI(){
   const btn=document.getElementById('btn-metronome');
-  if(btn){
-    btn.textContent=S.metronomeOn?'◼':'▶';
-    btn.classList.toggle('on',S.metronomeOn);
-    btn.title=S.metronomeOn?'Stop metronome':'Start metronome';
-  }
+  if(btn){btn.textContent=S.metronomeOn?'◼':'▶';btn.classList.toggle('on',S.metronomeOn);btn.title=S.metronomeOn?'Stop metronome':'Start metronome';}
 }
-
 function handleTap(){
   const now=Date.now();
-  tapTimes=tapTimes.filter(t=>now-t<3000);
-  tapTimes.push(now);
+  tapTimes=tapTimes.filter(t=>now-t<3000);tapTimes.push(now);
   if(tapTimes.length>=2){
     const gaps=tapTimes.slice(1).map((t,i)=>t-tapTimes[i]);
     const avg=gaps.reduce((a,b)=>a+b,0)/gaps.length;
-    const bpm=Math.round(60000/avg);
-    S.metronomeBpm=Math.max(30,Math.min(240,bpm));
+    S.metronomeBpm=Math.max(30,Math.min(240,Math.round(60000/avg)));
     document.getElementById('metro-bpm').value=S.metronomeBpm;
-    if(S.metronomeOn)startMetronome();
-    savePrefs();
+    if(S.metronomeOn)startMetronome();savePrefs();
   }
 }
 
@@ -963,58 +1117,55 @@ function handleTap(){
 let midiAccess=null;
 let liveVoices=new Map();
 
-function getPitchClassSet(notes){
-  return [...new Set(notes.map(n=>((n%12)+12)%12))].sort((a,b)=>a-b);
-}
+function getPitchClassSet(notes){return [...new Set(notes.map(n=>((n%12)+12)%12))].sort((a,b)=>a-b)}
 
 function buildMidiMonitorSVG(notes,detectedRootPc=null){
   if(!notes.length){
     return `<svg width="720" height="78" viewBox="0 0 720 78" xmlns="http://www.w3.org/2000/svg"><text x="360" y="44" text-anchor="middle" fill="currentColor" opacity="0.45" font-size="14" font-family="DM Mono, monospace">Play notes on your MIDI keyboard</text></svg>`;
   }
   const sorted=[...notes].sort((a,b)=>a-b);
-  const start=Math.max(24, sorted[0]-6);
-  const end=Math.min(108, sorted[sorted.length-1]+6);
-  const startOct=Math.floor(start/12);
-  const endOct=Math.floor(end/12);
-  const START=startOct*12;
-  const NUM_OCT=Math.max(2, endOct-startOct+1);
-  const REAL_END=START+NUM_OCT*12-1;
+  const start=Math.max(24,sorted[0]-6);
+  const end=Math.min(108,sorted[sorted.length-1]+6);
+  const startOct=Math.floor(start/12),endOct=Math.floor(end/12);
+  const START=startOct*12,NUM_OCT=Math.max(2,endOct-startOct+1),REAL_END=START+NUM_OCT*12-1;
   const W=18,WH=70,BW=11,BH=42,PAD=2;
-  const svgW=NUM_OCT*7*W+PAD*2, svgH=WH+6;
+  const svgW=NUM_OCT*7*W+PAD*2,svgH=WH+6;
   const held=new Set(sorted);
+
+  const cWhiteBg=cssVar('--key-white-bg');
+  const cWhiteBorder=cssVar('--key-white-border');
+  const cBlackBg=cssVar('--key-black-bg');
+  const cBlackBorder=cssVar('--key-black-border');
+  const cHlWhite=cssVar('--key-hl-white');
+  const cHlBlack=cssVar('--key-hl-black');
+  const cRoot=cssVar('--key-root');
+  const cRootBorder=cssVar('--key-root-border');
+  const cLabelWhite=cssVar('--key-label-white');
+  const cLabelBlackHl=cssVar('--key-label-black-hl');
+
   function wX(m){const ro=Math.floor((m-START)/12),s=(m-START)%12;return PAD+(ro*7+WIO.indexOf(s))*W}
   function bX(m){const ro=Math.floor((m-START)/12),s=(m-START)%12;return PAD+(ro*7+BWU[s])*W}
-  function isBlk(m){return !WIO.includes((m-START+1200)%12)}
+  function isBlk(m){return!WIO.includes((m-START+1200)%12)}
   let wh='',bk='',lb='';
   for(let m=START;m<=REAL_END;m++){
     if(isBlk(m))continue;
-    const pc=(m%12+12)%12;
-    const on=held.has(m);
-    const isRoot=on && detectedRootPc!==null && pc===detectedRootPc;
-    const fill=on?(isRoot?'#e8a030':'#acd6e8'):'#f0ede6';
-    const stroke=on?(isRoot?'#b57416':'#6ea9bf'):'#b0a898';
+    const pc=(m%12+12)%12,on=held.has(m),isRoot=on&&detectedRootPc!==null&&pc===detectedRootPc;
+    const fill=on?(isRoot?cRoot:cHlWhite):cWhiteBg;
+    const stroke=on?(isRoot?cRootBorder:cWhiteBorder):cWhiteBorder;
     const x=wX(m);
     wh+=`<rect x="${x}" y="${PAD}" width="${W-1}" height="${WH}" rx="3" fill="${fill}" stroke="${stroke}" stroke-width="0.8"/>`;
-    if(on){
-      const nm=nLabel(pc,'C');
-      lb+=`<text x="${x+(W-1)/2}" y="${WH-7}" text-anchor="middle" fill="#111827" font-size="7" font-family="DM Mono, monospace" font-weight="700">${nm}</text>`;
-    }
+    if(on){const nm=nLabel(pc,'C');lb+=`<text x="${x+(W-1)/2}" y="${WH-7}" text-anchor="middle" fill="${cLabelWhite}" font-size="7" font-family="DM Mono, monospace" font-weight="700">${nm}</text>`;}
   }
   for(let m=START;m<=REAL_END;m++){
     if(!isBlk(m))continue;
-    const pc=(m%12+12)%12;
-    const on=held.has(m);
-    const isRoot=on && detectedRootPc!==null && pc===detectedRootPc;
-    const fill=on?(isRoot?'#e8a030':'#3a7a92'):'#1a1a1e';
-    const stroke=on?(isRoot?'#b57416':'#1f4c5d'):'#111';
+    const pc=(m%12+12)%12,on=held.has(m),isRoot=on&&detectedRootPc!==null&&pc===detectedRootPc;
+    const fill=on?(isRoot?cRoot:cHlBlack):cBlackBg;
+    const stroke=on?(isRoot?cRootBorder:cHlBlack):cBlackBorder;
     const x=bX(m);
     bk+=`<rect x="${x}" y="${PAD}" width="${BW}" height="${BH}" rx="2" fill="${fill}" stroke="${stroke}" stroke-width="0.8"/>`;
-    if(on){
-      const nm=nLabel(pc,'C');
-      lb+=`<text x="${x+BW/2}" y="${BH-5}" text-anchor="middle" fill="${isRoot?'#111827':'#d8f0f8'}" font-size="6" font-family="DM Mono, monospace" font-weight="700">${nm}</text>`;
-    }
+    if(on){const nm=nLabel(pc,'C');lb+=`<text x="${x+BW/2}" y="${BH-5}" text-anchor="middle" fill="${isRoot?cLabelWhite:cLabelBlackHl}" font-size="6" font-family="DM Mono, monospace" font-weight="700">${nm}</text>`;}
   }
-  return `<svg width="${svgW}" height="${svgH}" viewBox="0 0 ${svgW} ${svgH}" xmlns="http://www.w3.org/2000/svg">${wh}${bk}${lb}</svg>`;
+  return`<svg width="${svgW}" height="${svgH}" viewBox="0 0 ${svgW} ${svgH}" xmlns="http://www.w3.org/2000/svg">${wh}${bk}${lb}</svg>`;
 }
 
 function detectHeldChord(){
@@ -1028,16 +1179,14 @@ function detectHeldChord(){
       const missing=expected.filter(v=>!rel.includes(v));
       const extra=rel.filter(v=>!expected.includes(v));
       const exact=missing.length===0&&extra.length===0;
-      const allowOmittedFifth=expected.length>=4 && missing.length===1 && extra.length===0 && (missing[0]===7 || missing[0]===5);
-      if(!exact && !allowOmittedFifth) continue;
+      const allowOmittedFifth=expected.length>=4&&missing.length===1&&extra.length===0&&(missing[0]===7||missing[0]===5);
+      if(!exact&&!allowOmittedFifth)continue;
       const score=(exact?100:84)+expected.length-(missing.length*3)-(extra.length*5);
-      if(!best || score>best.score){
-        best={label:`${nLabel(candidate,'C')}${chord.sym||''}`,rootPc:candidate,chord,score,pcs};
-      }
+      if(!best||score>best.score)best={label:`${nLabel(candidate,'C')}${chord.sym||''}`,rootPc:candidate,chord,score,pcs};
     }
   }
   if(best)return best;
-  return {label: pcs.map(pc=>nLabel(pc,'C')).join(' · '), rootPc: pcs[0], chord:null, score:0, pcs};
+  return{label:pcs.map(pc=>nLabel(pc,'C')).join(' · '),rootPc:pcs[0],chord:null,score:0,pcs};
 }
 
 function updateMidiBar(){
@@ -1048,23 +1197,21 @@ function updateMidiBar(){
   const chips=document.getElementById('midi-note-chips');
   const keyboard=document.getElementById('midi-kbd');
   const connectBtn=document.getElementById('btn-midi-bar');
-
   if(S.midiEnabled){
-    if(status) status.textContent=`${S.midiDeviceName||'Connected'} · ${S.heldMidiNotes.length} held`;
-    if(sub) sub.textContent='Chord name stays visible across every mode. Root notes are highlighted in gold on the keyboard.';
+    if(status)status.textContent=`${S.midiDeviceName||'Connected'} · ${S.heldMidiNotes.length} held`;
+    if(sub)sub.textContent='Chord name stays visible across every mode. Root notes are highlighted in amber.';
     if(connectBtn){connectBtn.textContent='Connected';connectBtn.classList.add('connected')}
   } else {
-    if(status) status.textContent='Not connected';
-    if(sub) sub.textContent='Connect a keyboard to show held notes, chord name, and keyboard display.';
+    if(status)status.textContent='Not connected';
+    if(sub)sub.textContent='Connect a keyboard to show held notes, chord name, and keyboard display.';
     if(connectBtn){connectBtn.textContent='Connect';connectBtn.classList.remove('connected')}
   }
-
   const detection=detectHeldChord();
-  if(chordDisp) chordDisp.textContent=detection?detection.label:'—';
+  if(chordDisp)chordDisp.textContent=detection?detection.label:'—';
   const namedNotes=S.heldMidiNotes.map(n=>`${nLabel(n%12,'C')}${Math.floor(n/12)-1}`);
-  if(noteText) noteText.textContent=namedNotes.length?namedNotes.join('  ·  '):'';
-  if(chips) chips.innerHTML=namedNotes.map(n=>`<span class="note-chip">${n}</span>`).join('');
-  if(keyboard) keyboard.innerHTML=buildMidiMonitorSVG(S.heldMidiNotes, detection?detection.rootPc:null);
+  if(noteText)noteText.textContent=namedNotes.length?namedNotes.join('  ·  '):'';
+  if(chips)chips.innerHTML=namedNotes.map(n=>`<span class="note-chip">${n}</span>`).join('');
+  if(keyboard)keyboard.innerHTML=buildMidiMonitorSVG(S.heldMidiNotes,detection?detection.rootPc:null);
 }
 
 function handleMidiMessage(e){
@@ -1076,22 +1223,18 @@ function handleMidiMessage(e){
     const ctx=getACtx();if(ctx.state==='suspended')ctx.resume();
     const osc=ctx.createOscillator(),g=ctx.createGain();
     osc.type='sine';osc.frequency.value=m2f(note);
-    g.gain.setValueAtTime(0,ctx.currentTime);
-    g.gain.linearRampToValueAtTime(.09,ctx.currentTime+.01);
-    osc.connect(g);g.connect(ctx.destination);osc.start();
-    liveVoices.set(note,{osc,g});
+    g.gain.setValueAtTime(0,ctx.currentTime);g.gain.linearRampToValueAtTime(.09,ctx.currentTime+.01);
+    osc.connect(g);g.connect(ctx.destination);osc.start();liveVoices.set(note,{osc,g});
   } else if(cmd===0x80||(cmd===0x90&&velocity===0)){
     S.heldMidiNotes=S.heldMidiNotes.filter(n=>n!==note);
     const voice=liveVoices.get(note);
     if(voice){
       const now=getACtx().currentTime;
-      voice.g.gain.cancelScheduledValues(now);
-      voice.g.gain.setValueAtTime(Math.max(0.0001,voice.g.gain.value||.08),now);
-      voice.g.gain.exponentialRampToValueAtTime(.001,now+.08);
-      voice.osc.stop(now+.09);liveVoices.delete(note);
+      voice.g.gain.cancelScheduledValues(now);voice.g.gain.setValueAtTime(Math.max(0.0001,voice.g.gain.value||.08),now);
+      voice.g.gain.exponentialRampToValueAtTime(.001,now+.08);voice.osc.stop(now+.09);liveVoices.delete(note);
     }
   }
-  updateMidiBar(); // updates bottom bar only — never touches main content
+  updateMidiBar();
 }
 
 async function connectMidi(){
@@ -1099,16 +1242,10 @@ async function connectMidi(){
   try{
     midiAccess=await navigator.requestMIDIAccess();
     let count=0;
-    midiAccess.inputs.forEach(input=>{
-      input.onmidimessage=handleMidiMessage;count++;
-      if(!S.midiDeviceName)S.midiDeviceName=input.name||'MIDI device';
-    });
+    midiAccess.inputs.forEach(input=>{input.onmidimessage=handleMidiMessage;count++;if(!S.midiDeviceName)S.midiDeviceName=input.name||'MIDI device'});
     midiAccess.onstatechange=()=>{
       S.midiDeviceName='';let c=0;
-      midiAccess.inputs.forEach(input=>{
-        input.onmidimessage=handleMidiMessage;c++;
-        if(!S.midiDeviceName)S.midiDeviceName=input.name||'MIDI device';
-      });
+      midiAccess.inputs.forEach(input=>{input.onmidimessage=handleMidiMessage;c++;if(!S.midiDeviceName)S.midiDeviceName=input.name||'MIDI device'});
       S.midiEnabled=c>0;updateMidiBar();savePrefs();
     };
     S.midiEnabled=count>0;updateMidiBar();savePrefs();
@@ -1120,31 +1257,18 @@ async function connectMidi(){
 // ══════════════════════════════════
 function setSidebarOpen(open){
   S.sidebarOpen=open;
-  const sb=document.getElementById('sidebar');
-  const tog=document.getElementById('sidebar-toggle');
-  if(open){
-    sb.classList.remove('collapsed');
-    tog.textContent='‹';
-    tog.classList.remove('collapsed-state');
-    tog.style.left='272px';
-    tog.title='Hide sidebar';
-  } else {
-    sb.classList.add('collapsed');
-    tog.textContent='›';
-    tog.classList.add('collapsed-state');
-    tog.style.left='0';
-    tog.title='Show sidebar';
-  }
+  const sb=document.getElementById('sidebar'),tog=document.getElementById('sidebar-toggle');
+  if(open){sb.classList.remove('collapsed');tog.textContent='‹';tog.classList.remove('collapsed-state');tog.style.left='272px';tog.title='Hide sidebar';}
+  else{sb.classList.add('collapsed');tog.textContent='›';tog.classList.add('collapsed-state');tog.style.left='0';tog.title='Show sidebar';}
 }
 
 // ══════════════════════════════════
 //  PREFS
 // ══════════════════════════════════
-function savePrefs(){
-  localStorage.setItem('piano_ref_v2',JSON.stringify({theme:S.theme,metronomeBpm:S.metronomeBpm,metronomeVolume:S.metronomeVolume}));
-}
+function savePrefs(){localStorage.setItem('piano_ref_v3',JSON.stringify({theme:S.theme,metronomeBpm:S.metronomeBpm,metronomeVolume:S.metronomeVolume}))}
 function loadPrefs(){
-  try{const p=JSON.parse(localStorage.getItem('piano_ref_v2')||'{}');
+  try{
+    const p=JSON.parse(localStorage.getItem('piano_ref_v3')||'{}');
     if(p.theme)S.theme=p.theme;
     if(p.metronomeBpm)S.metronomeBpm=p.metronomeBpm;
     if(p.metronomeVolume!==undefined)S.metronomeVolume=p.metronomeVolume;
@@ -1177,20 +1301,17 @@ function makeCard(title,subtitle,offsets,rootSemi,key,tag){
 }
 
 // ══════════════════════════════════
-//  GENERATE
+//  GENERATE (Harmonize + Circles + Progression)
 // ══════════════════════════════════
 function generate(){
   const main=document.getElementById('main-area');
   main.innerHTML='';
-
-  // Toolbar (play scale etc) — NOT the midi bar
   const tb=document.createElement('div');tb.className='toolbar';
-  if(S.mode==='diatonic')tb.appendChild(toolBtn('▶ Play scale',()=>playScale(S.key,S.scale)));
-  if(S.mode==='progression')tb.appendChild(toolBtn('▶ Play scale',()=>playScale(S.progKey,S.progScale)));
+  if(S.mode==='diatonic')tb.appendChild(toolBtn('▶ Play scale',()=>playScaleMidi(nIdx(S.key),SCALES[S.scale].iv,2,true)));
+  if(S.mode==='progression')tb.appendChild(toolBtn('▶ Play scale',()=>playScaleMidi(nIdx(S.progKey),SCALES[S.progScale].iv,2,true)));
   if(tb.children.length)main.appendChild(tb);
 
-  const grid=document.createElement('div');
-  grid.id='chord-grid';grid.className='chord-grid';
+  const grid=document.createElement('div');grid.id='chord-grid';grid.className='chord-grid';
   main.appendChild(grid);
 
   if(S.mode==='diatonic'){
@@ -1198,8 +1319,7 @@ function generate(){
     const maxInv=getDiaMaxInv();
     chords.forEach(ch=>{
       const inv=S.rndDia?Math.floor(Math.random()*(maxInv+1)):Math.min(S.diaInv,maxInv);
-      const invOff=applyInversion(ch.offsets,inv);
-      grid.appendChild(makeCard(`${ch.label} — ${ch.displayName}`,invLabel(inv),invOff,ch.root,S.key,ch.quality));
+      grid.appendChild(makeCard(`${ch.label} — ${ch.displayName}`,invLabel(inv),applyInversion(ch.offsets,inv),ch.root,S.key,ch.quality));
     });
   }else if(S.mode==='browser'){
     const ct=CHORD_MAP[S.browserChordType];
@@ -1209,8 +1329,7 @@ function generate(){
     order.forEach(rootName=>{
       const ri=nIdx(rootName);
       const inv=S.rndBrow?Math.floor(Math.random()*(maxInv+1)):Math.min(S.browInv,maxInv);
-      const invOff=applyInversion(ct.iv,inv);
-      grid.appendChild(makeCard(rootName+ct.sym,invLabel(inv),invOff,ri,rootName,ct.tag));
+      grid.appendChild(makeCard(rootName+ct.sym,invLabel(inv),applyInversion(ct.iv,inv),ri,rootName,ct.tag));
     });
   }else if(S.mode==='progression'){
     const tokens=S.progText.trim().split(/\s+/).filter(Boolean);
@@ -1220,12 +1339,116 @@ function generate(){
       const p=parseRoman(tok);if(!p||p.degree>=diaCh.length)return;
       any=true;const ch=diaCh[p.degree];
       const inv=S.rndProg?Math.floor(Math.random()*(maxInv+1)):Math.min(S.progInv,maxInv);
-      const invOff=applyInversion(ch.offsets,inv);
-      grid.appendChild(makeCard(`${tok} — ${ch.displayName}`,invLabel(inv),invOff,ch.root,S.progKey,ch.quality));
+      grid.appendChild(makeCard(`${tok} — ${ch.displayName}`,invLabel(inv),applyInversion(ch.offsets,inv),ch.root,S.progKey,ch.quality));
     });
     if(!any)grid.innerHTML='<div class="empty"><span class="big">♩</span>Enter valid Roman numerals</div>';
   }
   if(!grid.children.length)grid.innerHTML='<div class="empty"><span class="big">♩</span>No chords to display</div>';
+}
+
+// ══════════════════════════════════
+//  SCALE VIEW (new standalone mode)
+// ══════════════════════════════════
+function renderScaleView(){
+  const main=document.getElementById('main-area');
+  main.innerHTML='';
+
+  const ri=nIdx(S.svKey);
+  const scaleData=SCALES[S.svScale];
+  const scaleIv=scaleData.iv;
+  const key=S.svKey;
+
+  const wrap=document.createElement('div');wrap.className='scale-wrap';
+
+  // Header
+  const hdr=document.createElement('div');hdr.className='scale-header';
+  hdr.innerHTML=`<h2>${key} ${scaleData.name}</h2><span class="sc-sub">${scaleData.formula}</span>`;
+
+  // Play controls row
+  const playRow=document.createElement('div');playRow.className='toolbar';
+  const playBtn=toolBtn(`▶ Play ${S.svOctaves} oct${S.svPlayDown?' up+down':' up'}`,()=>{
+    playScaleMidi(ri,scaleIv,S.svOctaves,S.svPlayDown);
+  });
+  playRow.appendChild(playBtn);
+  hdr.appendChild(playRow);
+  wrap.appendChild(hdr);
+
+  // Formula / degree strip (clickable)
+  const fbox=document.createElement('div');fbox.className='scale-info-box';
+  fbox.innerHTML=`<div class="sec-label" style="margin-bottom:.5rem">${key} ${scaleData.name} — click a degree to hear it</div>`;
+  const frow=document.createElement('div');frow.className='scale-formula-row';
+
+  // Compute actual midi notes for two octaves so clicking plays the right pitch
+  const baseMidi=60+ri-(ri>6?12:0);
+  scaleIv.forEach((semi,i)=>{
+    const pc=(ri+semi+1200)%12;
+    const noteName=nLabel(pc,key);
+    const isRoot=pc===ri;
+    const deg=document.createElement('div');
+    deg.className=`scale-degree ${isRoot?'is-root':'is-scale'}`;
+    deg.innerHTML=`<div class="scale-deg-note ${isRoot?'is-root':'is-scale'}">${noteName}</div><div class="scale-deg-num">${iName(semi)}</div>`;
+    deg.title=`Play ${noteName}`;
+    deg.onclick=()=>playSingleNote(baseMidi+semi);
+    frow.appendChild(deg);
+
+    if(i<scaleIv.length-1){
+      const gap=scaleIv[i+1]-semi;
+      const sep=document.createElement('div');sep.className='scale-deg-sep';
+      sep.textContent=gap===2?'W':gap===1?'H':gap===3?'W+H':'–';
+      frow.appendChild(sep);
+    }
+  });
+  // Also add octave note
+  const octDeg=document.createElement('div');
+  octDeg.className='scale-degree is-root';
+  octDeg.innerHTML=`<div class="scale-deg-note is-root">${key}′</div><div class="scale-deg-num">8</div>`;
+  octDeg.title=`Play ${key} (upper octave)`;
+  octDeg.onclick=()=>playSingleNote(baseMidi+12);
+  frow.appendChild(octDeg);
+
+  fbox.appendChild(frow);
+  wrap.appendChild(fbox);
+
+  // Interactive piano keyboard
+  const kbdBox=document.createElement('div');kbdBox.className='scale-keyboard-wrap';
+  const {html:svgHtml}=buildScaleViewSVG(ri,scaleIv,key);
+  kbdBox.innerHTML=svgHtml;
+
+  // Attach click events to SVG keys
+  kbdBox.querySelectorAll('.sv-key').forEach(el=>{
+    const midi=parseInt(el.getAttribute('data-midi'));
+    el.style.cursor='pointer';
+    el.addEventListener('click',()=>playSingleNote(midi));
+  });
+  wrap.appendChild(kbdBox);
+
+  // Note chip list (clickable)
+  const chipTitle=document.createElement('div');chipTitle.className='sec-label';chipTitle.style.marginTop='.4rem';
+  chipTitle.textContent='Scale notes — click to play';
+  wrap.appendChild(chipTitle);
+
+  const chipRow=document.createElement('div');chipRow.className='scale-note-list';
+  scaleIv.forEach((semi,i)=>{
+    const pc=(ri+semi+1200)%12;
+    const noteName=nLabel(pc,key);
+    const isRoot=pc===ri;
+    const chip=document.createElement('div');
+    chip.className='snote-chip'+(isRoot?' is-root':'');
+    const degLabels=['R','2','3','4','5','6','7','8','9','10','11'];
+    chip.innerHTML=`${noteName}<span class="deg-badge">${iName(semi)}</span>`;
+    chip.title=`Play ${noteName}`;
+    chip.onclick=()=>playSingleNote(baseMidi+semi);
+    chipRow.appendChild(chip);
+  });
+  // octave
+  const topChip=document.createElement('div');
+  topChip.className='snote-chip is-root';
+  topChip.innerHTML=`${key}′<span class="deg-badge">8</span>`;
+  topChip.onclick=()=>playSingleNote(baseMidi+12);
+  chipRow.appendChild(topChip);
+  wrap.appendChild(chipRow);
+
+  main.appendChild(wrap);
 }
 
 // ══════════════════════════════════
@@ -1234,10 +1457,8 @@ function generate(){
 function renderOverlay(){
   const main=document.getElementById('main-area');
   main.innerHTML='';
-
-  // Toolbar
   const tb=document.createElement('div');tb.className='toolbar';
-  tb.appendChild(toolBtn('▶ Play scale',()=>playScale(S.ovKey,S.ovScale)));
+  tb.appendChild(toolBtn('▶ Play scale',()=>playScaleMidi(nIdx(S.ovKey),SCALES[S.ovScale].iv,2,true)));
   tb.appendChild(toolBtn('▶ Play chord',()=>{
     const ct=CHORD_MAP[S.ovChordType];
     playOffsets(applyInversion(ct?ct.iv:[0,4,7],Math.min(S.ovInv,getOvMaxInv())),nIdx(S.ovKey));
@@ -1252,57 +1473,42 @@ function renderOverlay(){
   const maxInv=getOvMaxInv();
 
   const wrap=document.createElement('div');wrap.className='sc-wrap';
-
-  // Header
   const hdr=document.createElement('div');hdr.className='sc-header';
   hdr.innerHTML=`<h2>${S.ovKey} ${scaleData.name}</h2><span class="sc-sub">${scaleData.formula}</span>`;
   wrap.appendChild(hdr);
 
-  // Legend
   const leg=document.createElement('div');leg.className='sc-legend';
   leg.innerHTML=`
-    <div class="leg-item"><div class="leg-swatch-key" style="background:#c8dde8;border-color:#7aafc0"></div>Scale note (white key)</div>
-    <div class="leg-item"><div class="leg-swatch-key" style="background:#2a6070;border-color:#4a90a8;width:10px;height:18px"></div>Scale note (black key)</div>
-    <div class="leg-item"><div class="leg-swatch-dot" style="background:#e8a030;border:2px solid #c07010"></div>Root</div>
+    <div class="leg-item"><div class="leg-swatch-key" style="background:var(--key-scale-white);border-color:var(--key-scale-white-border)"></div>Scale note (white key)</div>
+    <div class="leg-item"><div class="leg-swatch-key" style="background:var(--key-scale-black);border-color:var(--key-scale-black-border);width:10px;height:18px"></div>Scale note (black key)</div>
+    <div class="leg-item"><div class="leg-swatch-dot" style="background:var(--key-root);border:2px solid var(--key-root-border)"></div>Root</div>
     <div class="leg-item"><div class="leg-swatch-dot" style="background:white;border:2px solid #3a9cc8"></div>Chord tone</div>`;
   wrap.appendChild(leg);
 
-  // Formula
   const fbox=document.createElement('div');fbox.className='sc-formula-box';
   fbox.innerHTML=`<div class="sc-formula-title">${S.ovKey} ${scaleData.name} — Degrees &amp; Intervals</div>`;
   const frow=document.createElement('div');frow.className='sc-formula-row';
-  const chordPCsF=new Set();
-  if(ct)ct.iv.forEach(o=>chordPCsF.add((ri+o+1200)%12));
+  const chordPCsF=new Set();if(ct)ct.iv.forEach(o=>chordPCsF.add((ri+o+1200)%12));
   scaleIv.forEach((semi,i)=>{
-    const pc=(ri+semi+1200)%12;
-    const noteName=nLabel(pc,S.ovKey);
+    const pc=(ri+semi+1200)%12,noteName=nLabel(pc,S.ovKey);
     const isRoot=pc===ri,inChord=chordPCsF.has(pc);
     const noteCls=isRoot?'is-root':inChord?'is-chord':'is-scale';
-    const step=document.createElement('div');
-    step.className=`sc-step ${isRoot?'is-root':inChord?'is-chord':''}`;
+    const step=document.createElement('div');step.className=`sc-step ${isRoot?'is-root':inChord?'is-chord':''}`;
     step.innerHTML=`<div class="sc-step-note ${noteCls}">${noteName}</div><div class="sc-step-interval">${iName(semi)}</div>`;
     frow.appendChild(step);
-    if(i<scaleIv.length-1){
-      const gap=scaleIv[i+1]-semi;
-      const sep=document.createElement('div');sep.className='sc-step-sep';
-      sep.textContent=gap===2?'W':gap===1?'H':gap===3?'W+H':'–';
-      frow.appendChild(sep);
-    }
+    if(i<scaleIv.length-1){const gap=scaleIv[i+1]-semi;const sep=document.createElement('div');sep.className='sc-step-sep';sep.textContent=gap===2?'W':gap===1?'H':gap===3?'W+H':'–';frow.appendChild(sep)}
   });
   fbox.appendChild(frow);wrap.appendChild(fbox);
 
   const pLabel=document.createElement('div');pLabel.className='sec-label';pLabel.style.marginTop='.3rem';
-
   if(S.ovAllDegrees&&has7){
     pLabel.textContent='All diatonic degrees — scale fill + chord dots';
     wrap.appendChild(pLabel);
     const scgrid=document.createElement('div');scgrid.className='sc-chord-grid';
     scaleIv.slice(0,7).forEach((interval,deg)=>{
-      const degPc=(ri+interval+1200)%12;
-      const degName=nLabel(degPc,S.ovKey);
+      const degPc=(ri+interval+1200)%12,degName=nLabel(degPc,S.ovKey);
       const offsets=buildDiatonicOffsets(scaleIv.slice(0,7),deg,Math.min(S.ovStack,7));
-      const q=getTriadQ(offsets);
-      const roman=makeRomanLabel(deg,q);
+      const q=getTriadQ(offsets),roman=makeRomanLabel(deg,q);
       const matched=CHORD_BY_SIG[intervalSig(offsets)];
       const chordLabel=matched?(degName+matched.sym):degName;
       const inv=S.rndOverlay?Math.floor(Math.random()*(maxInv+1)):Math.min(S.ovInv,maxInv);
@@ -1311,11 +1517,7 @@ function renderOverlay(){
       const{midiNotes}=resolveToMidi(invOff,degPc);
       const noteNames=midiNotes.map(m=>nLabel(m%12,S.ovKey)).join(' – ');
       const card=document.createElement('div');card.className='sc-card';
-      card.innerHTML=`
-        <div class="sc-card-top"><span class="sc-card-title">${roman} — ${chordLabel}</span>${tagHTML(q)}</div>
-        <div class="sc-card-degree">${invLabel(inv)} · tap to play</div>
-        ${svgFinal}
-        <div class="card-notes">${noteNames}</div>`;
+      card.innerHTML=`<div class="sc-card-top"><span class="sc-card-title">${roman} — ${chordLabel}</span>${tagHTML(q)}</div><div class="sc-card-degree">${invLabel(inv)} · tap to play</div>${svgFinal}<div class="card-notes">${noteNames}</div>`;
       card.onclick=()=>playOffsets(invOff,degPc);
       scgrid.appendChild(card);
     });
@@ -1331,11 +1533,7 @@ function renderOverlay(){
     const noteNames=midiNotes.map(m=>nLabel(m%12,S.ovKey)).join(' – ');
     const chordName=S.ovKey+(ct?ct.sym:'');
     const card=document.createElement('div');card.className='sc-card';card.style.maxWidth='620px';
-    card.innerHTML=`
-      <div class="sc-card-top"><span class="sc-card-title">${chordName}</span>${ct?tagHTML(ct.tag):''}</div>
-      <div class="sc-card-degree">${invLabel(inv)} · tap to play</div>
-      ${svg}
-      <div class="card-notes">${noteNames}</div>`;
+    card.innerHTML=`<div class="sc-card-top"><span class="sc-card-title">${chordName}</span>${ct?tagHTML(ct.tag):''}</div><div class="sc-card-degree">${invLabel(inv)} · tap to play</div>${svg}<div class="card-notes">${noteNames}</div>`;
     card.onclick=()=>playOffsets(invOff,ri);
     wrap.appendChild(card);
   }
@@ -1346,8 +1544,7 @@ function renderOverlay(){
 //  BUILDER
 // ══════════════════════════════════
 function renderBuilder(){
-  const main=document.getElementById('main-area');
-  main.innerHTML='';
+  const main=document.getElementById('main-area');main.innerHTML='';
   const wrap=document.createElement('div');wrap.className='builder-wrap';
   const hdr=document.createElement('div');hdr.className='builder-header';
   hdr.innerHTML='<h2>Progression Builder</h2>';
@@ -1356,19 +1553,16 @@ function renderBuilder(){
   const cl=document.createElement('button');cl.className='abtn sec sml';cl.textContent='Clear';
   cl.onclick=()=>{S.builderProg=[];renderBuilder()};
   hdr.appendChild(pp);hdr.appendChild(cl);
-  hdr.appendChild(toolBtn('▶ Play scale',()=>playScale(S.builderKey,S.builderScale)));
+  hdr.appendChild(toolBtn('▶ Play scale',()=>playScaleMidi(nIdx(S.builderKey),SCALES[S.builderScale].iv,2,true)));
   wrap.appendChild(hdr);
-
   const dz=document.createElement('div');
   dz.className='drop-zone'+(S.builderProg.length===0?' empty-zone':'');
   dz.id='drop-zone';
   S.builderProg.forEach((item,idx)=>dz.appendChild(makeTile(item,idx)));
   setupDZ(dz);wrap.appendChild(dz);
-
   const pl=document.createElement('div');pl.className='sec-label';pl.style.marginTop='.6rem';
   pl.textContent='Diatonic source chords — drag or click to add';
   wrap.appendChild(pl);
-
   const pool=document.createElement('div');pool.className='source-pool';
   const maxInv=getBuilderMaxInv();
   getDiatonicChords(S.builderKey,S.builderScale,S.builderStack).forEach(ch=>{
@@ -1381,14 +1575,11 @@ function renderBuilder(){
     t.onclick=()=>addToBuilder(item);pool.appendChild(t);
   });
   wrap.appendChild(pool);
-
   if(S.builderProg.length>0){
     const pvl=document.createElement('div');pvl.className='sec-label';pvl.style.marginTop='.8rem';
     pvl.textContent='Progression preview';wrap.appendChild(pvl);
     const pvg=document.createElement('div');pvg.className='chord-grid';
-    S.builderProg.forEach((item,idx)=>{
-      pvg.appendChild(makeCard(`${idx+1}. ${item.label}`,invLabel(item.inv)+' · '+item.rootName,item.offsets,item.rootSemi,item.key,item.quality));
-    });
+    S.builderProg.forEach((item,idx)=>pvg.appendChild(makeCard(`${idx+1}. ${item.label}`,invLabel(item.inv)+' · '+item.rootName,item.offsets,item.rootSemi,item.key,item.quality)));
     wrap.appendChild(pvg);
   }
   main.appendChild(wrap);
@@ -1396,26 +1587,22 @@ function renderBuilder(){
 
 function makeTile(item,idx){
   const t=document.createElement('div');t.className='prog-tile';t.draggable=true;t.dataset.idx=idx;
-  t.innerHTML=`<div><div class="tname">${item.label}</div><div class="tsub">${item.rootName} · ${invLabel(item.inv)}</div></div>
-    <button class="tplay">▶</button><button class="tdel">✕</button>`;
+  t.innerHTML=`<div><div class="tname">${item.label}</div><div class="tsub">${item.rootName} · ${invLabel(item.inv)}</div></div><button class="tplay">▶</button><button class="tdel">✕</button>`;
   t.querySelector('.tplay').onclick=e=>{e.stopPropagation();playOffsets(item.offsets,item.rootSemi)};
   t.querySelector('.tdel').onclick=e=>{e.stopPropagation();S.builderProg.splice(idx,1);renderBuilder()};
   t.ondragstart=e=>{t.classList.add('dragging');e.dataTransfer.setData('tile-idx',idx)};
   t.ondragend=()=>t.classList.remove('dragging');
   return t;
 }
-
 function setupDZ(dz){
   dz.ondragover=e=>{e.preventDefault();dz.classList.add('drag-over')};
   dz.ondragleave=()=>dz.classList.remove('drag-over');
   dz.ondrop=e=>{
     e.preventDefault();dz.classList.remove('drag-over');
-    const src=e.dataTransfer.getData('src-chord');
-    const ti=e.dataTransfer.getData('tile-idx');
+    const src=e.dataTransfer.getData('src-chord'),ti=e.dataTransfer.getData('tile-idx');
     if(src){addToBuilder(JSON.parse(src))}
     else if(ti!==''){
-      const from=parseInt(ti);
-      const tiles=[...dz.querySelectorAll('.prog-tile')];
+      const from=parseInt(ti),tiles=[...dz.querySelectorAll('.prog-tile')];
       let toIdx=S.builderProg.length;
       for(let i=0;i<tiles.length;i++){const r=tiles[i].getBoundingClientRect();if(e.clientX<r.left+r.width/2){toIdx=i;break}}
       if(from!==toIdx){const[m]=S.builderProg.splice(from,1);S.builderProg.splice(toIdx>from?toIdx-1:toIdx,0,m);renderBuilder()}
@@ -1471,34 +1658,32 @@ function buildOverlayChordSelect(){
   const el=document.getElementById('sel-ov-chord-type');el.innerHTML='';
   CHORD_GROUPS.forEach(g=>{
     const og=document.createElement('optgroup');og.label=g.group;
-    g.chords.forEach(c=>{
-      const o=document.createElement('option');o.value=c.name;
-      o.textContent=`${c.name} (${c.sym||'—'})`;
-      if(c.name===S.ovChordType)o.selected=true;
-      og.appendChild(o);
-    });el.appendChild(og);
+    g.chords.forEach(c=>{const o=document.createElement('option');o.value=c.name;o.textContent=`${c.name} (${c.sym||'—'})`;if(c.name===S.ovChordType)o.selected=true;og.appendChild(o)});
+    el.appendChild(og);
   });
 }
 function buildBuilderTypeSelect(){
   const el=document.getElementById('sel-builder-type');el.innerHTML='';
   CHORD_GROUPS.forEach(g=>{
     const og=document.createElement('optgroup');og.label=g.group;
-    g.chords.forEach(c=>{
-      const o=document.createElement('option');o.value=c.name;
-      o.textContent=`${c.name} (${c.sym||'—'})`;og.appendChild(o);
-    });el.appendChild(og);
+    g.chords.forEach(c=>{const o=document.createElement('option');o.value=c.name;o.textContent=`${c.name} (${c.sym||'—'})`;og.appendChild(o)});
+    el.appendChild(og);
   });
 }
 
 function setMode(m){
   S.mode=m;
   document.querySelectorAll('[data-mode]').forEach(b=>b.classList.toggle('on',b.dataset.mode===m));
-  ['diatonic','browser','progression','overlay','builder'].forEach(p=>{
-    document.getElementById('p-'+p).classList.toggle('vis',p===m);
+  ['diatonic','browser','scaleview','progression','overlay','builder'].forEach(p=>{
+    const el=document.getElementById('p-'+p);if(el)el.classList.toggle('vis',p===m);
   });
-  document.getElementById('gen-btns').style.display=(m==='builder'||m==='overlay')?'none':'flex';
+  // gen-btns only for modes that use it
+  const showGen=['diatonic','browser','progression'].includes(m);
+  document.getElementById('gen-btns').style.display=showGen?'flex':'none';
+
   if(m==='builder')renderBuilder();
   else if(m==='overlay')renderOverlay();
+  else if(m==='scaleview')renderScaleView();
   else{document.getElementById('main-area').innerHTML='<div class="chord-grid" id="chord-grid"></div>';generate()}
 }
 
@@ -1509,6 +1694,7 @@ buildKeyGrid('kg-diatonic','key');
 buildKeyGrid('kg-prog','progKey');
 buildKeyGrid('kg-builder','builderKey',()=>{if(S.mode==='builder')renderBuilder()});
 buildKeyGrid('kg-overlay','ovKey',()=>{if(S.mode==='overlay')renderOverlay()});
+buildKeyGrid('kg-scaleview','svKey',()=>{if(S.mode==='scaleview')renderScaleView()});
 buildChordTypeList();
 buildOverlayChordSelect();
 buildBuilderTypeSelect();
@@ -1540,15 +1726,19 @@ document.getElementById('rnd-prog').onchange=e=>S.rndProg=e.target.checked;
 document.getElementById('rnd-builder').onchange=e=>S.rndBuilder=e.target.checked;
 document.getElementById('rnd-overlay').onchange=e=>{S.rndOverlay=e.target.checked;if(S.mode==='overlay')renderOverlay()};
 
+// Scale view wiring
+document.getElementById('sel-sv-scale').onchange=e=>{S.svScale=e.target.value;if(S.mode==='scaleview')renderScaleView()};
+document.getElementById('sel-sv-octaves').onchange=e=>{S.svOctaves=parseInt(e.target.value);if(S.mode==='scaleview')renderScaleView()};
+document.getElementById('sv-play-down').onchange=e=>{S.svPlayDown=e.target.checked;if(S.mode==='scaleview')renderScaleView()};
+document.getElementById('btn-sv-generate').onclick=renderScaleView;
+
 document.getElementById('btn-add-custom').onclick=()=>{
   const rootName=document.getElementById('sel-builder-root').value;
   const typeName=document.getElementById('sel-builder-type').value;
   const ct=CHORD_MAP[typeName];if(!ct)return;
-  const ri=nIdx(rootName);
-  const maxInv=Math.max(0,ct.iv.length-1);
+  const ri=nIdx(rootName),maxInv=Math.max(0,ct.iv.length-1);
   const inv=S.rndBuilder?Math.floor(Math.random()*(maxInv+1)):Math.min(S.builderInv,maxInv);
-  const invOff=applyInversion(ct.iv,inv);
-  addToBuilder({label:rootName+ct.sym,rootName,quality:ct.tag,inv,offsets:invOff,rootSemi:ri,key:rootName});
+  addToBuilder({label:rootName+ct.sym,rootName,quality:ct.tag,inv,offsets:applyInversion(ct.iv,inv),rootSemi:ri,key:rootName});
 };
 
 document.getElementById('btn-generate').onclick=generate;
@@ -1558,35 +1748,19 @@ document.getElementById('btn-clear').onclick=()=>{
   if(g)g.innerHTML='<div class="empty"><span class="big">♩</span>Select options and press Generate</div>';
 };
 
-// Metronome wiring
+// Metronome
 document.getElementById('btn-metronome').onclick=toggleMetronome;
-document.getElementById('btn-metro-up').onclick=()=>{
-  S.metronomeBpm=Math.min(240,S.metronomeBpm+2);
-  document.getElementById('metro-bpm').value=S.metronomeBpm;
-  if(S.metronomeOn)startMetronome();savePrefs();
-};
-document.getElementById('btn-metro-down').onclick=()=>{
-  S.metronomeBpm=Math.max(30,S.metronomeBpm-2);
-  document.getElementById('metro-bpm').value=S.metronomeBpm;
-  if(S.metronomeOn)startMetronome();savePrefs();
-};
-document.getElementById('metro-bpm').onchange=e=>{
-  S.metronomeBpm=Math.max(30,Math.min(240,parseInt(e.target.value||92)));
-  if(S.metronomeOn)startMetronome();savePrefs();
-};
+document.getElementById('btn-metro-up').onclick=()=>{S.metronomeBpm=Math.min(240,S.metronomeBpm+2);document.getElementById('metro-bpm').value=S.metronomeBpm;if(S.metronomeOn)startMetronome();savePrefs()};
+document.getElementById('btn-metro-down').onclick=()=>{S.metronomeBpm=Math.max(30,S.metronomeBpm-2);document.getElementById('metro-bpm').value=S.metronomeBpm;if(S.metronomeOn)startMetronome();savePrefs()};
+document.getElementById('metro-bpm').onchange=e=>{S.metronomeBpm=Math.max(30,Math.min(240,parseInt(e.target.value||92)));if(S.metronomeOn)startMetronome();savePrefs()};
 document.getElementById('btn-tap').onclick=handleTap;
 document.getElementById('metro-volume').oninput=e=>{S.metronomeVolume=parseFloat(e.target.value);savePrefs()};
 
 // Settings
-document.getElementById('btn-settings').onclick=e=>{
-  e.stopPropagation();
-  document.getElementById('settings-drawer').classList.toggle('open');
-};
+document.getElementById('btn-settings').onclick=e=>{e.stopPropagation();document.getElementById('settings-drawer').classList.toggle('open')};
 document.addEventListener('click',e=>{
-  const drawer=document.getElementById('settings-drawer');
-  const btn=document.getElementById('btn-settings');
-  if(drawer.classList.contains('open')&&!drawer.contains(e.target)&&e.target!==btn)
-    drawer.classList.remove('open');
+  const drawer=document.getElementById('settings-drawer'),btn=document.getElementById('btn-settings');
+  if(drawer.classList.contains('open')&&!drawer.contains(e.target)&&e.target!==btn)drawer.classList.remove('open');
 });
 document.getElementById('sel-theme').onchange=e=>{S.theme=e.target.value;applyTheme()};
 
@@ -1594,9 +1768,10 @@ document.getElementById('sel-theme').onchange=e=>{S.theme=e.target.value;applyTh
 document.getElementById('btn-midi').onclick=()=>connectMidi();
 document.getElementById('btn-midi-bar').onclick=()=>connectMidi();
 
-// Sidebar toggle
+// Sidebar
 document.getElementById('sidebar-toggle').onclick=()=>setSidebarOpen(!S.sidebarOpen);
 
+// Boot
 loadPrefs();
 applyTheme();
 document.getElementById('metro-bpm').value=S.metronomeBpm;
