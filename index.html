@@ -284,6 +284,21 @@ input.song-name-input:focus{border-color:var(--gold)}
 .song-chord-del{background:none;border:none;color:var(--dim);cursor:pointer;font-size:.65rem;padding:.1rem .25rem;transition:color .12s;flex-shrink:0}
 .song-chord-del:hover{color:var(--pink)}
 .playback-bar{display:flex;align-items:center;gap:.65rem;background:var(--surface2);border:1px solid var(--border);border-radius:7px;padding:.5rem .85rem;flex-wrap:wrap}
+.transpose-overlay{position:fixed;inset:0;background:rgba(0,0,0,.55);z-index:200;display:flex;align-items:center;justify-content:center}
+.transpose-modal{background:var(--surface);border:1px solid var(--border2);border-radius:14px;padding:1.4rem 1.6rem;width:420px;max-width:calc(100vw - 32px);display:flex;flex-direction:column;gap:1rem;box-shadow:0 20px 60px rgba(0,0,0,.3)}
+.transpose-modal h3{font-family:'Playfair Display',serif;font-size:1.1rem;color:var(--gold)}
+.transpose-key-grid{display:grid;grid-template-columns:repeat(6,1fr);gap:.28rem}
+.tkey-btn{padding:.38rem .2rem;background:var(--surface2);border:1px solid var(--border);border-radius:4px;color:var(--dim);font-family:'DM Mono',monospace;font-size:.72rem;cursor:pointer;transition:all .13s;text-align:center}
+.tkey-btn.on{background:var(--gold);color:var(--bg);border-color:var(--gold);font-weight:500}
+.tkey-btn:hover:not(.on){border-color:var(--gold);color:var(--text)}
+.transpose-preview{background:var(--surface2);border:1px solid var(--border);border-radius:7px;padding:.65rem .85rem;display:flex;flex-direction:column;gap:.4rem;max-height:220px;overflow-y:auto}
+.tp-row{display:flex;align-items:center;gap:.6rem;padding:.22rem 0;border-bottom:1px solid var(--border)}
+.tp-row:last-child{border-bottom:none}
+.tp-num{font-size:.58rem;color:var(--dim);min-width:18px}
+.tp-orig{font-family:'Playfair Display',serif;font-size:.85rem;color:var(--dim);flex:1}
+.tp-arrow{font-size:.7rem;color:var(--border2)}
+.tp-new{font-family:'Playfair Display',serif;font-size:.85rem;color:var(--gold);flex:1}
+.transpose-modal-btns{display:flex;gap:.5rem;justify-content:flex-end}
 ::-webkit-scrollbar{width:4px;height:4px}
 ::-webkit-scrollbar-track{background:transparent}
 ::-webkit-scrollbar-thumb{background:var(--border2);border-radius:2px}
@@ -970,6 +985,122 @@ function renderCluster(){
   for(let i=0;i<deg;i++){const{notes:an,rootMidi:rm,displayName:dn,quality:q,roman:ro}=clusterNotesForDegree(i);const mc=document.createElement('div');mc.className='cluster-mini-card'+(i===S.clusterDegree?' active-card':'');const miniSpan=an.length>1?an[an.length-1]-an[0]:0;const miniStart=Math.max(36,S.clusterRegister-12);const miniEnd=miniStart+24;const miniSvg=pianoSVG(an,rm,miniStart,miniEnd,16,60,10,38,true,null);mc.innerHTML=`<div class="cluster-mini-title">${ro} — ${dn}</div><div style="font-size:.5rem;color:var(--dim)">span: ${miniSpan} st</div>`;mc.appendChild(miniSvg);mc.onclick=()=>{S.clusterDegree=i;renderCluster();playMidiList(an)};allGrid.appendChild(mc)}
   wrap.appendChild(allGrid);main.appendChild(wrap);
 }
+// ── TRANSPOSE ──
+const ALL_KEYS=['C','C#','D','Eb','E','F','F#','G','Ab','A','Bb','B'];
+function transposeNotes(notes, semitones){return notes.map(n=>n+semitones)}
+function transposeLabel(label, semitones){
+  // Try to shift note names in the label by the given semitones
+  // Matches root note at start: e.g. C#, Bb, G followed by chord suffix
+  return label.replace(/^([A-G][#b]?)(.*)/,(match,root,suffix)=>{
+    const idx=nIdx(root);if(idx===-1)return match;
+    const newPc=((idx+semitones)%12+12)%12;
+    // Choose flat or sharp based on key preference
+    const flatKeys=new Set(['F','Bb','Eb','Ab','Db','Gb']);
+    const newRoot=FLAT[newPc];
+    // Use sharp if not a flat key note
+    const sharpRoot=SHARP[newPc];
+    const usedRoot=flatKeys.has(sharpRoot)?newRoot:sharpRoot;
+    return usedRoot+suffix;
+  });
+}
+function getSemitonesBetweenKeys(fromKey, toKey){
+  const from=nIdx(fromKey),to=nIdx(toKey);
+  if(from===-1||to===-1)return 0;
+  return((to-from)+12)%12;
+}
+function detectSongOriginalKey(song){
+  // Try to infer the original key from the first chord's lowest note
+  if(!song.chords.length)return'C';
+  const firstNotes=song.chords[0].notes;if(!firstNotes.length)return'C';
+  const lowestNote=Math.min(...firstNotes);
+  return SHARP[lowestNote%12];
+}
+
+function openTransposeModal(song){
+  // Remove any existing modal
+  const existing=document.getElementById('transpose-overlay');if(existing)existing.remove();
+
+  const overlay=document.createElement('div');overlay.className='transpose-overlay';overlay.id='transpose-overlay';
+
+  const modal=document.createElement('div');modal.className='transpose-modal';
+  modal.innerHTML=`<h3>Transpose Song</h3>`;
+
+  // Original key detection + display
+  const origKeyPc=Math.min(...song.chords.flatMap(c=>c.notes))%12;
+  const origKeyName=SHARP[origKeyPc];
+
+  const origRow=document.createElement('div');origRow.style.cssText='font-size:.65rem;color:var(--dim)';
+  origRow.textContent=`Original key detected: ${origKeyName}  ·  Select target key below`;
+  modal.appendChild(origRow);
+
+  // Key grid
+  const kgLabel=document.createElement('div');kgLabel.className='sec-label';kgLabel.textContent='Target Key';modal.appendChild(kgLabel);
+  const kg=document.createElement('div');kg.className='transpose-key-grid';
+  let selectedTargetKey=origKeyName;
+
+  const preview=document.createElement('div');preview.className='transpose-preview';
+
+  function updatePreview(){
+    preview.innerHTML='';
+    const semitones=getSemitonesBetweenKeys(origKeyName,selectedTargetKey);
+    if(semitones===0){preview.innerHTML='<div style="font-size:.62rem;color:var(--dim);padding:.3rem 0">Same key — no change</div>';return;}
+    song.chords.forEach((ch,i)=>{
+      const row=document.createElement('div');row.className='tp-row';
+      const newLabel=transposeLabel(ch.label,semitones);
+      const newNotes=transposeNotes(ch.notes,semitones);
+      const newNoteNames=newNotes.map(n=>`${nLabel(n%12,selectedTargetKey)}${Math.floor(n/12)-1}`).join(' – ');
+      const origNoteNames=ch.notes.map(n=>`${nLabel(n%12,origKeyName)}${Math.floor(n/12)-1}`).join(' – ');
+      row.innerHTML=`<span class="tp-num">${i+1}.</span><div style="flex:1"><div class="tp-orig">${ch.label} <span style="font-size:.52rem">${origNoteNames}</span></div></div><span class="tp-arrow">→</span><div style="flex:1"><div class="tp-new">${newLabel} <span style="font-size:.52rem;color:var(--dim)">${newNoteNames}</span></div></div>`;
+      preview.appendChild(row);
+    });
+  }
+
+  ALL_KEYS.forEach(k=>{
+    const b=document.createElement('button');b.className='tkey-btn'+(k===selectedTargetKey?' on':'');b.textContent=k;
+    b.onclick=()=>{selectedTargetKey=k;kg.querySelectorAll('.tkey-btn').forEach(x=>x.classList.toggle('on',x.textContent===selectedTargetKey));updatePreview()};
+    kg.appendChild(b);
+  });
+  modal.appendChild(kg);
+
+  // Preview
+  const pvLabel=document.createElement('div');pvLabel.className='sec-label';pvLabel.textContent='Preview';modal.appendChild(pvLabel);
+  updatePreview();modal.appendChild(preview);
+
+  // Buttons
+  const btnRow=document.createElement('div');btnRow.className='transpose-modal-btns';
+  const cancelBtn=document.createElement('button');cancelBtn.className='abtn sec sml';cancelBtn.textContent='Cancel';cancelBtn.onclick=()=>overlay.remove();
+
+  const playBtn=document.createElement('button');playBtn.className='abtn sec sml';playBtn.textContent='▶ Preview';
+  playBtn.onclick=()=>{
+    const semitones=getSemitonesBetweenKeys(origKeyName,selectedTargetKey);
+    song.chords.forEach((ch,i)=>playMidiList(transposeNotes(ch.notes,semitones),i*1.6));
+  };
+
+  const saveCopyBtn=document.createElement('button');saveCopyBtn.className='abtn sec sml';saveCopyBtn.textContent='Save as New Song';
+  saveCopyBtn.onclick=()=>{
+    const semitones=getSemitonesBetweenKeys(origKeyName,selectedTargetKey);
+    const newSong={title:`${song.title||'Song'} (${selectedTargetKey})`,chords:song.chords.map(ch=>({notes:transposeNotes(ch.notes,semitones),label:transposeLabel(ch.label,semitones)}))};
+    S.songs.push(newSong);saveAll();renderSongSidebar();overlay.remove();
+    // Show confirmation
+    const toast=document.createElement('div');toast.style.cssText='position:fixed;bottom:170px;right:24px;background:var(--green);color:var(--bg);padding:.5rem 1rem;border-radius:6px;font-family:DM Mono,monospace;font-size:.65rem;z-index:300;transition:opacity .4s';toast.textContent=`Saved: ${newSong.title}`;document.body.appendChild(toast);setTimeout(()=>{toast.style.opacity='0';setTimeout(()=>toast.remove(),400)},2400);
+  };
+
+  const replaceBtn=document.createElement('button');replaceBtn.className='abtn pri sml';replaceBtn.textContent='Replace Original';
+  replaceBtn.onclick=()=>{
+    const semitones=getSemitonesBetweenKeys(origKeyName,selectedTargetKey);
+    if(!confirm(`Replace "${song.title||'this song'}" with the ${selectedTargetKey} version? This cannot be undone.`))return;
+    song.chords=song.chords.map(ch=>({notes:transposeNotes(ch.notes,semitones),label:transposeLabel(ch.label,semitones)}));
+    saveAll();overlay.remove();renderSongLibrary();
+  };
+
+  btnRow.appendChild(cancelBtn);btnRow.appendChild(playBtn);btnRow.appendChild(saveCopyBtn);btnRow.appendChild(replaceBtn);
+  modal.appendChild(btnRow);
+
+  overlay.appendChild(modal);
+  overlay.onclick=e=>{if(e.target===overlay)overlay.remove()};
+  document.body.appendChild(overlay);
+}
+
 function renderSongSidebar(){
   const sb=document.getElementById('song-list-sb');if(!sb)return;sb.innerHTML='';
   S.songs.forEach((song,idx)=>{const item=document.createElement('div');item.className='song-item'+(S.activeSong===idx?' active-song':'');const title=document.createElement('span');title.className='song-item-title';title.textContent=song.title||'Untitled Song';const meta=document.createElement('span');meta.className='song-item-meta';meta.textContent=`${song.chords.length} chord${song.chords.length!==1?'s':''}`;const del=document.createElement('button');del.className='song-item-del';del.textContent='✕';del.onclick=e=>{e.stopPropagation();if(confirm(`Delete "${song.title||'this song'}"?`)){S.songs.splice(idx,1);if(S.activeSong===idx)S.activeSong=null;else if(typeof S.activeSong==='number'&&S.activeSong>idx)S.activeSong--;saveAll();renderSongLibrary();}};item.appendChild(title);item.appendChild(meta);item.appendChild(del);item.onclick=()=>{S.activeSong=idx;saveAll();renderSongLibrary()};sb.appendChild(item)});
@@ -988,7 +1119,7 @@ function renderSongLibrary(){
   const titleIn=document.createElement('input');titleIn.className='song-name-input';titleIn.placeholder='Song title…';titleIn.value=song.title||'';titleIn.style.flex='1';titleIn.oninput=()=>{song.title=titleIn.value;renderSongSidebar();saveAll()};
   const delBtn=document.createElement('button');delBtn.className='abtn danger sml';delBtn.textContent='Delete Song';delBtn.onclick=()=>{if(confirm(`Delete "${song.title||'this song'}"?`)){S.songs.splice(S.activeSong,1);S.activeSong=null;saveAll();renderSongLibrary();}};
   hdr.appendChild(backBtn);hdr.appendChild(titleIn);hdr.appendChild(delBtn);wrap.appendChild(hdr);
-  if(song.chords.length){const pb=document.createElement('div');pb.className='playback-bar';pb.innerHTML='<span style="font-size:.58rem;color:var(--dim);text-transform:uppercase;letter-spacing:.08em">Playback:</span>';const playAll=document.createElement('button');playAll.className='abtn pri sml';playAll.textContent='▶ Play All';playAll.onclick=()=>song.chords.forEach((ch,i)=>playMidiList(ch.notes,i*1.6));pb.appendChild(playAll);wrap.appendChild(pb);
+  if(song.chords.length){const pb=document.createElement('div');pb.className='playback-bar';pb.innerHTML='<span style="font-size:.58rem;color:var(--dim);text-transform:uppercase;letter-spacing:.08em">Playback:</span>';const playAll=document.createElement('button');playAll.className='abtn pri sml';playAll.textContent='▶ Play All';playAll.onclick=()=>song.chords.forEach((ch,i)=>playMidiList(ch.notes,i*1.6));pb.appendChild(playAll);const tpBtn=document.createElement('button');tpBtn.className='abtn sec sml';tpBtn.textContent='⇄ Transpose';tpBtn.onclick=()=>openTransposeModal(song);pb.appendChild(tpBtn);wrap.appendChild(pb);
     const clbl=document.createElement('div');clbl.className='chord-builder-label';clbl.style.marginTop='.3rem';clbl.textContent=`${song.chords.length} saved chord${song.chords.length!==1?'s':''} — click to play`;wrap.appendChild(clbl);
     const cList=document.createElement('div');cList.className='song-chord-list';song.chords.forEach((ch,idx)=>{const row=document.createElement('div');row.className='song-chord-row';const noteNames=ch.notes.map(n=>`${nLabel(n%12,'C')}${Math.floor(n/12)-1}`).join(' – ');const num=document.createElement('span');num.className='song-chord-num';num.textContent=`${idx+1}.`;const nm=document.createElement('span');nm.className='song-chord-name';nm.textContent=ch.label;const notes=document.createElement('span');notes.className='song-chord-notes';notes.textContent=noteNames;const del=document.createElement('button');del.className='song-chord-del';del.textContent='✕';del.onclick=e=>{e.stopPropagation();song.chords.splice(idx,1);saveAll();renderSongLibrary()};row.appendChild(num);row.appendChild(nm);row.appendChild(notes);row.appendChild(del);row.onclick=()=>playMidiList(ch.notes);cList.appendChild(row)});wrap.appendChild(cList);}
   const cbLbl=document.createElement('div');cbLbl.className='chord-builder-label';cbLbl.style.marginTop='.5rem';cbLbl.textContent='Add a chord — click keys to select notes';wrap.appendChild(cbLbl);
