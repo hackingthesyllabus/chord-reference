@@ -251,7 +251,7 @@ input.tcb:checked+.tlbl .box::after{content:'✓';font-size:8px;color:var(--bg)}
 .cluster-mini-card:hover{border-color:var(--green);transform:translateY(-2px)}
 .cluster-mini-card.active-card{border-color:var(--green);box-shadow:0 0 0 1px var(--green)}
 .cluster-mini-title{font-family:'Playfair Display',serif;font-size:.8rem;color:var(--green)}
-.songlib-wrap{display:flex;flex-direction:column;gap:1rem;width:100%;max-width:860px}
+.songlib-wrap{display:flex;flex-direction:column;gap:1rem;width:100%}
 .songlib-header{display:flex;align-items:center;gap:.7rem;flex-wrap:wrap;margin-bottom:.2rem}
 .songlib-header h2{font-family:'Playfair Display',serif;font-size:1.2rem;color:var(--gold)}
 .song-list{display:flex;flex-direction:column;gap:.4rem}
@@ -299,6 +299,28 @@ input.song-name-input:focus{border-color:var(--gold)}
 .tp-arrow{font-size:.7rem;color:var(--border2)}
 .tp-new{font-family:'Playfair Display',serif;font-size:.85rem;color:var(--gold);flex:1}
 .transpose-modal-btns{display:flex;gap:.5rem;justify-content:flex-end}
+/* ── Song Library two-column layout ── */
+.songlib-two-col{display:grid;grid-template-columns:1fr 1fr;gap:1rem;width:100%;align-items:start}
+@media(max-width:900px){.songlib-two-col{grid-template-columns:1fr}}
+.songlib-col{display:flex;flex-direction:column;gap:.7rem}
+.song-chord-row{flex-direction:column;align-items:flex-start;gap:.3rem;cursor:pointer}
+.song-chord-row-top{display:flex;align-items:center;gap:.6rem;width:100%}
+.song-chord-mini-kbd{overflow-x:auto;width:100%}
+.song-chord-mini-kbd svg{display:block}
+/* MIDI capture box */
+.midi-capture-box{background:var(--surface2);border:1px solid var(--border2);border-radius:8px;padding:.8rem;display:flex;flex-direction:column;gap:.55rem}
+.midi-capture-name{font-family:'Playfair Display',serif;font-size:1.5rem;color:var(--gold);min-height:2rem;line-height:1.1}
+.midi-capture-notes{font-size:.6rem;color:var(--dim);min-height:.9rem;line-height:1.4}
+.midi-capture-kbd{overflow-x:auto;display:flex;justify-content:center}
+.midi-save-btn{padding:.5rem 1rem;background:var(--green);color:var(--bg);border:none;border-radius:5px;font-family:'DM Mono',monospace;font-size:.65rem;letter-spacing:.06em;text-transform:uppercase;cursor:pointer;transition:filter .13s}
+.midi-save-btn:disabled{opacity:.35;cursor:default}
+.midi-save-btn:not(:disabled):hover{filter:brightness(1.1)}
+/* Transpose inline view */
+.tp-inline-header{display:flex;align-items:center;gap:.5rem;flex-wrap:wrap}
+.tp-inline-chord-row{background:var(--surface);border:1px solid var(--border);border-radius:6px;padding:.4rem .7rem;display:flex;flex-direction:column;gap:.3rem;cursor:pointer;transition:border-color .14s}
+.tp-inline-chord-row:hover{border-color:var(--gold)}
+.tp-inline-chord-name{font-family:'Playfair Display',serif;font-size:.9rem;color:var(--gold)}
+.tp-inline-chord-notes{font-size:.55rem;color:var(--dim)}
 ::-webkit-scrollbar{width:4px;height:4px}
 ::-webkit-scrollbar-track{background:transparent}
 ::-webkit-scrollbar-thumb{background:var(--border2);border-radius:2px}
@@ -675,6 +697,33 @@ function buildClosedCluster(chordPCs,registerBase){
   }
   return notes;
 }
+// Inversion-based voicing: finds the rotation of pcs that keeps the chord
+// centered as close as possible to anchor — no hand movement required.
+function bestVoicingNearAnchor(pcs,anchor){
+  if(!pcs.length)return[];
+  let bestNotes=null,bestScore=Infinity;
+  const n=pcs.length;
+  for(let inv=0;inv<n;inv++){
+    const rot=[...pcs.slice(inv),...pcs.slice(0,inv)];
+    const basePc=rot[0];
+    // Find MIDI note for basePc at/below anchor
+    const belowAnchor=anchor-((anchor-basePc+1200)%12);
+    for(let octOff=-1;octOff<=1;octOff++){
+      const lowest=belowAnchor+octOff*12;
+      const notes=[lowest];let prev=lowest;
+      for(let i=1;i<n;i++){
+        const pc=rot[i];let interval=((pc-prev%12+12)%12);if(interval===0)interval=12;
+        const next=prev+interval;notes.push(next);prev=next;
+      }
+      // Keep within sensible MIDI range
+      if(notes[0]<24||notes[notes.length-1]>100)continue;
+      const centroid=notes.reduce((s,x)=>s+x,0)/notes.length;
+      const score=Math.abs(centroid-anchor);
+      if(score<bestScore){bestScore=score;bestNotes=[...notes];}
+    }
+  }
+  return bestNotes||buildClosedCluster(pcs,anchor);
+}
 const S={
   mode:'diatonic',key:'A',scale:'major',diaStack:3,
   progKey:'C',progScale:'major',progStack:3,
@@ -770,6 +819,26 @@ function buildPianoSVGStr(offsets,key,rootSemi){
     bk+=`<rect x="${x}" y="${PAD}" width="${BW}" height="${BH}" rx="2" fill="${fill}" stroke="${stroke}" stroke-width="${on?1.5:.7}"/>`;
     if(on){const nm=nLabel(m%12,key);lb+=`<text x="${x+BW/2}" y="${BH-5}" text-anchor="middle" fill="${isRoot?cLblW:hl.lblb}" font-size="${nm.length>2?5.5:7}" font-family="DM Mono,monospace" font-weight="700">${nm}</text>`}
   }
+  return`<svg width="${svgW}" height="${svgH}" viewBox="0 0 ${svgW} ${svgH}" xmlns="http://www.w3.org/2000/svg">${wh}${bk}${lb}</svg>`;
+}
+// Renders a compact piano SVG from absolute MIDI note numbers (for Song Library display)
+function buildPianoSVGFromAbsMidi(midiNotes,rootPc){
+  if(!midiNotes||!midiNotes.length)return'';
+  const sorted=[...midiNotes].sort((a,b)=>a-b);
+  const mn=sorted[0],mx=sorted[sorted.length-1];
+  const startOct=Math.floor(mn/12),NUM_OCT=Math.max(2,Math.ceil((mx-startOct*12)/12)+1);
+  const START=startOct*12,END=START+NUM_OCT*12-1;
+  const W=20,WH=82,BW=13,BH=52,PAD=2;
+  const svgW=NUM_OCT*7*W+PAD*2,svgH=WH+16;
+  const hlSet=new Set(sorted),hl=hlColors();
+  const cWBg=cv('--kw'),cWBr=cv('--kwb'),cBBg=cv('--kb'),cBBr=cv('--kbb');
+  const cRoot=cv('--kroot'),cRootBr=cv('--krootb'),cLblW=cv('--klbl-w'),cLblBH=cv('--klbl-bh');
+  function wX(m){const ro=Math.floor((m-START)/12),s=(m-START)%12;return PAD+(ro*7+WIO.indexOf(s))*W}
+  function bX(m){const ro=Math.floor((m-START)/12),s=(m-START)%12;return PAD+(ro*7+BWU[s])*W}
+  function isBlk(m){return!WIO.includes((m-START+1200)%12)}
+  let wh='',bk='',lb='';
+  for(let m=START;m<=END;m++){if(isBlk(m))continue;const on=hlSet.has(m),isRoot=on&&rootPc!=null&&(m%12+12)%12===rootPc;const fill=isRoot?cRoot:on?hl.w:cWBg,stroke=isRoot?cRootBr:on?hl.wb:cWBr;const x=wX(m);wh+=`<rect x="${x}" y="${PAD}" width="${W-1}" height="${WH}" rx="3" fill="${fill}" stroke="${stroke}" stroke-width="${on?1.2:.7}"/>`;if(on){const nm=nLabel(m%12,'C');lb+=`<text x="${x+(W-1)/2}" y="${WH-6}" text-anchor="middle" fill="${isRoot?cLblW:hl.lbl}" font-size="${nm.length>2?6.5:8}" font-family="DM Mono,monospace" font-weight="700">${nm}</text>`}}
+  for(let m=START;m<=END;m++){if(!isBlk(m))continue;const on=hlSet.has(m),isRoot=on&&rootPc!=null&&(m%12+12)%12===rootPc;const fill=isRoot?cRoot:on?hl.b:cBBg,stroke=isRoot?cRootBr:on?hl.bb:cBBr;const x=bX(m);bk+=`<rect x="${x}" y="${PAD}" width="${BW}" height="${BH}" rx="2" fill="${fill}" stroke="${stroke}" stroke-width="${on?1.5:.7}"/>`;if(on){const nm=nLabel(m%12,'C');lb+=`<text x="${x+BW/2}" y="${BH-5}" text-anchor="middle" fill="${isRoot?cLblW:hl.lblb}" font-size="${nm.length>2?5.5:7}" font-family="DM Mono,monospace" font-weight="700">${nm}</text>`}}
   return`<svg width="${svgW}" height="${svgH}" viewBox="0 0 ${svgW} ${svgH}" xmlns="http://www.w3.org/2000/svg">${wh}${bk}${lb}</svg>`;
 }
 function buildScaleViewSVG(rootSemi,scaleIv,key){
@@ -944,8 +1013,13 @@ function clusterNotesForDegree(degree){
   if(degree>=deg)return{notes:[],rootMidi:S.clusterRegister,chordRootPc:ri,displayName:'',quality:'maj',roman:''};
   const chords=getDiatonicChords(S.clusterKey,S.clusterScale,S.clusterStack);const ch=chords[degree];
   const pcs=getDiatonicPCs(sc.slice(0,deg),degree,Math.min(S.clusterStack,deg),ri);
-  const notes=buildClosedCluster(pcs,S.clusterRegister);const rootMidi=notes[0];
-  return{notes,rootMidi,chordRootPc:pcs[0],displayName:ch?ch.displayName:'',quality:ch?ch.quality:'maj',roman:ch?makeRomanLabel(degree,ch.quality):'',chords};
+  const notes=bestVoicingNearAnchor(pcs,S.clusterRegister);
+  const chordRootPc=pcs[0];
+  const rootMidi=notes.find(n=>(n%12+12)%12===chordRootPc)||notes[0];
+  // Detect inversion: how many notes are below root?
+  const sortedNotes=[...notes].sort((a,b)=>a-b);
+  const invCount=sortedNotes.indexOf(rootMidi);
+  return{notes,rootMidi,chordRootPc,invCount,displayName:ch?ch.displayName:'',quality:ch?ch.quality:'maj',roman:ch?makeRomanLabel(degree,ch.quality):'',chords};
 }
 function renderCluster(){
   const main=document.getElementById('main-area');main.innerHTML='';
@@ -960,12 +1034,12 @@ function renderCluster(){
   const prev=document.createElement('button');prev.className='mini-btn';prev.textContent='◀';prev.style.marginLeft='.5rem';prev.onclick=()=>{S.clusterDegree=(S.clusterDegree-1+deg)%deg;renderCluster()};
   const next=document.createElement('button');next.className='mini-btn';next.textContent='▶';next.onclick=()=>{S.clusterDegree=(S.clusterDegree+1)%deg;renderCluster()};
   nav.appendChild(prev);nav.appendChild(next);wrap.appendChild(nav);
-  const{notes,rootMidi,chordRootPc,displayName,quality,roman}=clusterNotesForDegree(S.clusterDegree);
+  const{notes,rootMidi,chordRootPc,displayName,quality,roman,invCount}=clusterNotesForDegree(S.clusterDegree);
   const kbdBox=document.createElement('div');kbdBox.className='cluster-keyboard-big';
   const cn=document.createElement('div');cn.className='cluster-chord-name';cn.textContent=displayName;
   const cs=document.createElement('div');cs.className='cluster-chord-sub';
   const span=notes.length>1?notes[notes.length-1]-notes[0]:0;
-  cs.textContent=`${roman} — closed position · span: ${span} semitones · click notes or button to play`;
+  cs.textContent=`${roman} — ${invLabel(invCount)} · span: ${span} st · inversions keep hand position · click to play`;
   kbdBox.appendChild(cn);kbdBox.appendChild(cs);
   const displayStart=Math.max(36,notes[0]-12-12),displayEnd=Math.min(96,notes[notes.length-1]+12+12);
   const svgEl=pianoSVG(notes,rootMidi,displayStart,displayEnd,30,126,19,80,true,(midi)=>{playSingle(midi)});kbdBox.appendChild(svgEl);
@@ -1105,7 +1179,10 @@ function renderSongSidebar(){
   const sb=document.getElementById('song-list-sb');if(!sb)return;sb.innerHTML='';
   S.songs.forEach((song,idx)=>{const item=document.createElement('div');item.className='song-item'+(S.activeSong===idx?' active-song':'');const title=document.createElement('span');title.className='song-item-title';title.textContent=song.title||'Untitled Song';const meta=document.createElement('span');meta.className='song-item-meta';meta.textContent=`${song.chords.length} chord${song.chords.length!==1?'s':''}`;const del=document.createElement('button');del.className='song-item-del';del.textContent='✕';del.onclick=e=>{e.stopPropagation();if(confirm(`Delete "${song.title||'this song'}"?`)){S.songs.splice(idx,1);if(S.activeSong===idx)S.activeSong=null;else if(typeof S.activeSong==='number'&&S.activeSong>idx)S.activeSong--;saveAll();renderSongLibrary();}};item.appendChild(title);item.appendChild(meta);item.appendChild(del);item.onclick=()=>{S.activeSong=idx;saveAll();renderSongLibrary()};sb.appendChild(item)});
 }
+let _songLibPollTimer=null;
+function _stopSongLibPoll(){if(_songLibPollTimer){clearInterval(_songLibPollTimer);_songLibPollTimer=null}}
 function renderSongLibrary(){
+  _stopSongLibPoll();
   renderSongSidebar();const main=document.getElementById('main-area');main.innerHTML='';
   if(S.activeSong===null||S.activeSong>=S.songs.length){
     const wrap=document.createElement('div');wrap.className='songlib-wrap';const hdr=document.createElement('div');hdr.className='songlib-header';hdr.innerHTML='<h2>Song Library</h2>';wrap.appendChild(hdr);
@@ -1113,29 +1190,167 @@ function renderSongLibrary(){
     else{const subLbl=document.createElement('div');subLbl.style.cssText='font-size:.62rem;color:var(--dim);margin-bottom:.5rem';subLbl.textContent='Click a song to open it.';wrap.appendChild(subLbl);const list=document.createElement('div');list.className='song-list';S.songs.forEach((song,idx)=>{const item=document.createElement('div');item.className='song-item';item.innerHTML=`<span class="song-item-title">${song.title||'Untitled Song'}</span><span class="song-item-meta">${song.chords.length} chords</span>`;item.onclick=()=>{S.activeSong=idx;saveAll();renderSongLibrary()};list.appendChild(item)});wrap.appendChild(list);}
     main.appendChild(wrap);return;
   }
-  const song=S.songs[S.activeSong];const wrap=document.createElement('div');wrap.className='songlib-wrap';
+  const song=S.songs[S.activeSong];const wrap=document.createElement('div');wrap.className='songlib-wrap';wrap.style.maxWidth='none';
+
+  // ── Header row ──
   const hdr=document.createElement('div');hdr.className='songlib-header';
   const backBtn=document.createElement('button');backBtn.className='abtn sec sml';backBtn.textContent='← All Songs';backBtn.onclick=()=>{S.activeSong=null;saveAll();renderSongLibrary()};
   const titleIn=document.createElement('input');titleIn.className='song-name-input';titleIn.placeholder='Song title…';titleIn.value=song.title||'';titleIn.style.flex='1';titleIn.oninput=()=>{song.title=titleIn.value;renderSongSidebar();saveAll()};
   const delBtn=document.createElement('button');delBtn.className='abtn danger sml';delBtn.textContent='Delete Song';delBtn.onclick=()=>{if(confirm(`Delete "${song.title||'this song'}"?`)){S.songs.splice(S.activeSong,1);S.activeSong=null;saveAll();renderSongLibrary();}};
   hdr.appendChild(backBtn);hdr.appendChild(titleIn);hdr.appendChild(delBtn);wrap.appendChild(hdr);
-  if(song.chords.length){const pb=document.createElement('div');pb.className='playback-bar';pb.innerHTML='<span style="font-size:.58rem;color:var(--dim);text-transform:uppercase;letter-spacing:.08em">Playback:</span>';const playAll=document.createElement('button');playAll.className='abtn pri sml';playAll.textContent='▶ Play All';playAll.onclick=()=>song.chords.forEach((ch,i)=>playMidiList(ch.notes,i*1.6));pb.appendChild(playAll);const tpBtn=document.createElement('button');tpBtn.className='abtn sec sml';tpBtn.textContent='⇄ Transpose';tpBtn.onclick=()=>openTransposeModal(song);pb.appendChild(tpBtn);wrap.appendChild(pb);
-    const clbl=document.createElement('div');clbl.className='chord-builder-label';clbl.style.marginTop='.3rem';clbl.textContent=`${song.chords.length} saved chord${song.chords.length!==1?'s':''} — click to play`;wrap.appendChild(clbl);
-    const cList=document.createElement('div');cList.className='song-chord-list';song.chords.forEach((ch,idx)=>{const row=document.createElement('div');row.className='song-chord-row';const noteNames=ch.notes.map(n=>`${nLabel(n%12,'C')}${Math.floor(n/12)-1}`).join(' – ');const num=document.createElement('span');num.className='song-chord-num';num.textContent=`${idx+1}.`;const nm=document.createElement('span');nm.className='song-chord-name';nm.textContent=ch.label;const notes=document.createElement('span');notes.className='song-chord-notes';notes.textContent=noteNames;const del=document.createElement('button');del.className='song-chord-del';del.textContent='✕';del.onclick=e=>{e.stopPropagation();song.chords.splice(idx,1);saveAll();renderSongLibrary()};row.appendChild(num);row.appendChild(nm);row.appendChild(notes);row.appendChild(del);row.onclick=()=>playMidiList(ch.notes);cList.appendChild(row)});wrap.appendChild(cList);}
-  const cbLbl=document.createElement('div');cbLbl.className='chord-builder-label';cbLbl.style.marginTop='.5rem';cbLbl.textContent='Add a chord — click keys to select notes';wrap.appendChild(cbLbl);
+
+  // ── Playback + Transpose bar ──
+  if(song.chords.length){
+    const pb=document.createElement('div');pb.className='playback-bar';pb.innerHTML='<span style="font-size:.58rem;color:var(--dim);text-transform:uppercase;letter-spacing:.08em">Playback:</span>';
+    const playAll=document.createElement('button');playAll.className='abtn pri sml';playAll.textContent='▶ Play All';playAll.onclick=()=>song.chords.forEach((ch,i)=>playMidiList(ch.notes,i*1.6));pb.appendChild(playAll);
+    const tpBtn=document.createElement('button');tpBtn.className='abtn sec sml';tpBtn.textContent='⇄ Transpose';tpBtn.onclick=()=>openTransposeModal(song);pb.appendChild(tpBtn);
+    // Inline transpose key selector
+    const tpLbl=document.createElement('span');tpLbl.style.cssText='font-size:.56rem;color:var(--dim);margin-left:.6rem;white-space:nowrap';tpLbl.textContent='View in key:';pb.appendChild(tpLbl);
+    const tpSel=document.createElement('select');tpSel.className='sel';tpSel.style.cssText='width:auto;padding:.2rem .4rem;font-size:.62rem;flex:unset';
+    const origKeyPc=song.chords.length?Math.min(...song.chords.flatMap(c=>c.notes))%12:0;
+    const origKeyName=SHARP[origKeyPc];
+    [{v:'',l:'Original'},...ALL_KEYS.map(k=>({v:k,l:k}))].forEach(opt=>{const o=document.createElement('option');o.value=opt.v;o.textContent=opt.l;tpSel.appendChild(o)});
+    tpSel.onchange=()=>{S._songViewKey=tpSel.value||null;renderTransposeView()};pb.appendChild(tpSel);
+    wrap.appendChild(pb);
+  }
+
+  // ── Two-column body ──
+  const cols=document.createElement('div');cols.className='songlib-two-col';
+
+  // ── LEFT COLUMN: saved chords ──
+  const leftCol=document.createElement('div');leftCol.className='songlib-col';
+
+  // Saved chords list with mini keyboards
+  if(song.chords.length){
+    const clbl=document.createElement('div');clbl.className='chord-builder-label';clbl.textContent=`${song.chords.length} saved chord${song.chords.length!==1?'s':''} — click to play`;leftCol.appendChild(clbl);
+    const cList=document.createElement('div');cList.id='sl-chord-list';cList.className='song-chord-list';
+    song.chords.forEach((ch,idx)=>{
+      const row=document.createElement('div');row.className='song-chord-row';
+      const top=document.createElement('div');top.className='song-chord-row-top';
+      const num=document.createElement('span');num.className='song-chord-num';num.textContent=`${idx+1}.`;
+      const nm=document.createElement('span');nm.className='song-chord-name';nm.textContent=ch.label;
+      const noteStr=ch.notes.map(n=>`${nLabel(n%12,'C')}${Math.floor(n/12)-1}`).join(' – ');
+      const notesSp=document.createElement('span');notesSp.className='song-chord-notes';notesSp.textContent=noteStr;
+      const del=document.createElement('button');del.className='song-chord-del';del.textContent='✕';
+      del.onclick=e=>{e.stopPropagation();song.chords.splice(idx,1);saveAll();renderSongLibrary()};
+      top.appendChild(num);top.appendChild(nm);top.appendChild(notesSp);top.appendChild(del);row.appendChild(top);
+      // Mini keyboard
+      const kbdWrap=document.createElement('div');kbdWrap.className='song-chord-mini-kbd';
+      const det2=detectChord(ch.notes);
+      kbdWrap.innerHTML=buildPianoSVGFromAbsMidi(ch.notes,det2?det2.rootPc:null);
+      row.appendChild(kbdWrap);
+      row.onclick=()=>playMidiList(ch.notes);cList.appendChild(row);
+    });
+    leftCol.appendChild(cList);
+  } else {
+    const emp=document.createElement('div');emp.style.cssText='font-size:.65rem;color:var(--dim);padding:1rem 0';emp.textContent='No chords saved yet — add some using the builder on the right.';leftCol.appendChild(emp);
+  }
+
+  // Inline transpose view container
+  const tpViewWrap=document.createElement('div');tpViewWrap.id='tp-view-wrap';leftCol.appendChild(tpViewWrap);
+  function renderTransposeView(){
+    tpViewWrap.innerHTML='';
+    const key=S._songViewKey;if(!key||!song.chords.length)return;
+    const origKeyPc=Math.min(...song.chords.flatMap(c=>c.notes))%12;
+    const origKeyName=SHARP[origKeyPc];
+    const semitones=getSemitonesBetweenKeys(origKeyName,key);
+    const hdr2=document.createElement('div');hdr2.className='tp-inline-header';
+    hdr2.innerHTML=`<div class="chord-builder-label" style="border:none;padding:0">Transposed to ${key} — click to play</div>`;
+    const playTpBtn=document.createElement('button');playTpBtn.className='abtn sec sml';playTpBtn.textContent='▶ Play All';playTpBtn.onclick=()=>song.chords.forEach((ch,i)=>playMidiList(transposeNotes(ch.notes,semitones),i*1.6));hdr2.appendChild(playTpBtn);
+    tpViewWrap.appendChild(hdr2);
+    song.chords.forEach((ch,idx)=>{
+      const newNotes=transposeNotes(ch.notes,semitones);
+      const newLabel=transposeLabel(ch.label,semitones);
+      const row=document.createElement('div');row.className='tp-inline-chord-row';
+      const sorted=[...newNotes].sort((a,b)=>a-b);
+      const noteStr=sorted.map(n=>`${nLabel(n%12,key)}${Math.floor(n/12)-1}`).join(' – ');
+      const nm=document.createElement('div');nm.className='tp-inline-chord-name';nm.textContent=`${idx+1}. ${newLabel}`;
+      const notes=document.createElement('div');notes.className='tp-inline-chord-notes';notes.textContent=noteStr;
+      const kbdWrap=document.createElement('div');kbdWrap.className='song-chord-mini-kbd';
+      const det3=detectChord(newNotes);
+      kbdWrap.innerHTML=buildPianoSVGFromAbsMidi(newNotes,det3?det3.rootPc:null);
+      row.appendChild(nm);row.appendChild(notes);row.appendChild(kbdWrap);
+      row.onclick=()=>playMidiList(newNotes);tpViewWrap.appendChild(row);
+    });
+  }
+  S._songViewKey=null; // reset on re-render
+
+  cols.appendChild(leftCol);
+
+  // ── RIGHT COLUMN: MIDI capture + chord builder ──
+  const rightCol=document.createElement('div');rightCol.className='songlib-col';
+
+  // MIDI Capture box
+  const midiBox=document.createElement('div');midiBox.className='midi-capture-box';
+  const midiBoxLbl=document.createElement('div');midiBoxLbl.className='sec-label';midiBoxLbl.textContent=S.midiEnabled?'MIDI Capture — hold a chord':'MIDI Capture';midiBox.appendChild(midiBoxLbl);
+  if(!S.midiEnabled){
+    const hint=document.createElement('div');hint.style.cssText='font-size:.62rem;color:var(--dim)';hint.textContent='Connect your MIDI keyboard via Settings → MIDI to capture chords in real time.';midiBox.appendChild(hint);
+  } else {
+    const midiNameEl=document.createElement('div');midiNameEl.className='midi-capture-name';midiNameEl.id='sl-midi-chord-name';midiNameEl.textContent='—';midiBox.appendChild(midiNameEl);
+    const midiNotesEl=document.createElement('div');midiNotesEl.className='midi-capture-notes';midiNotesEl.id='sl-midi-chord-notes';midiBox.appendChild(midiNotesEl);
+    const midiKbdEl=document.createElement('div');midiKbdEl.className='midi-capture-kbd';midiKbdEl.id='sl-midi-kbd';midiBox.appendChild(midiKbdEl);
+    const midiLblRow=document.createElement('div');midiLblRow.style.cssText='display:flex;gap:.4rem;align-items:center;flex-wrap:wrap';
+    const midiLblLbl=document.createElement('span');midiLblLbl.style.cssText='font-size:.58rem;color:var(--dim);white-space:nowrap;text-transform:uppercase;letter-spacing:.08em';midiLblLbl.textContent='Label:';
+    const midiLabelIn=document.createElement('input');midiLabelIn.className='chord-label-input';midiLabelIn.id='sl-midi-label';midiLabelIn.placeholder='Auto-detected…';midiLabelIn.style.flex='1';
+    midiLblRow.appendChild(midiLblLbl);midiLblRow.appendChild(midiLabelIn);midiBox.appendChild(midiLblRow);
+    const midiSaveBtn=document.createElement('button');midiSaveBtn.className='midi-save-btn';midiSaveBtn.id='sl-midi-save';midiSaveBtn.textContent='💾 Save MIDI Chord';midiSaveBtn.disabled=true;
+    midiSaveBtn.onclick=()=>{
+      if(!S.heldMidiNotes.length)return;
+      const label=midiLabelIn.value.trim()||(document.getElementById('sl-midi-chord-name').textContent)||'Chord';
+      song.chords.push({notes:[...S.heldMidiNotes],label});saveAll();renderSongLibrary();
+    };
+    midiBox.appendChild(midiSaveBtn);
+    // Poll MIDI state while in this view
+    function updateMidiCapture(){
+      const nameEl=document.getElementById('sl-midi-chord-name');if(!nameEl)return;
+      const det=detectChord(S.heldMidiNotes);
+      const chordName=det?det.label:'—';
+      nameEl.textContent=chordName;
+      const notesEl=document.getElementById('sl-midi-chord-notes');
+      if(notesEl)notesEl.textContent=S.heldMidiNotes.map(n=>`${nLabel(n%12,'C')}${Math.floor(n/12)-1}`).join('  ·  ');
+      const kbdEl=document.getElementById('sl-midi-kbd');
+      if(kbdEl)kbdEl.innerHTML=buildMidiMonitorSVG(S.heldMidiNotes,det?det.rootPc:null);
+      const labelIn=document.getElementById('sl-midi-label');
+      if(labelIn&&!labelIn._userEdited)labelIn.value=S.heldMidiNotes.length?chordName:'';
+      const saveBtn=document.getElementById('sl-midi-save');
+      if(saveBtn)saveBtn.disabled=S.heldMidiNotes.length===0;
+    }
+    midiLabelIn.oninput=()=>{midiLabelIn._userEdited=true};
+    _songLibPollTimer=setInterval(updateMidiCapture,150);
+    updateMidiCapture();
+  }
+  rightCol.appendChild(midiBox);
+
+  // Chord builder (keyboard picker)
+  const cbLbl=document.createElement('div');cbLbl.className='chord-builder-label';cbLbl.style.marginTop='.3rem';cbLbl.textContent='Add a chord — click keys to select notes';rightCol.appendChild(cbLbl);
   let pickerOct=4;
-  const octRow=document.createElement('div');octRow.style.cssText='display:flex;gap:.4rem;align-items:center;flex-wrap:wrap;margin-bottom:.4rem';const octLbl=document.createElement('span');octLbl.style.cssText='font-size:.58rem;color:var(--dim);text-transform:uppercase;letter-spacing:.08em';octLbl.textContent='Octave view:';octRow.appendChild(octLbl);
-  const octBtns=[];[3,4,5,6].forEach(oct=>{const ob=document.createElement('button');ob.className='ibtn'+(oct===pickerOct?' on':'');ob.textContent=oct;ob.style.minWidth='30px';ob.onclick=()=>{pickerOct=oct;octBtns.forEach((b,i)=>b.classList.toggle('on',i+3===pickerOct));refreshPicker()};octBtns.push(ob);octRow.appendChild(ob)});wrap.appendChild(octRow);
+  const octRow=document.createElement('div');octRow.style.cssText='display:flex;gap:.4rem;align-items:center;flex-wrap:wrap;margin-bottom:.4rem';
+  const octLbl=document.createElement('span');octLbl.style.cssText='font-size:.58rem;color:var(--dim);text-transform:uppercase;letter-spacing:.08em';octLbl.textContent='Octave view:';octRow.appendChild(octLbl);
+  const octBtns=[];[3,4,5,6].forEach(oct=>{const ob=document.createElement('button');ob.className='ibtn'+(oct===pickerOct?' on':'');ob.textContent=oct;ob.style.minWidth='30px';ob.onclick=()=>{pickerOct=oct;octBtns.forEach((b,i)=>b.classList.toggle('on',i+3===pickerOct));refreshPicker()};octBtns.push(ob);octRow.appendChild(ob)});rightCol.appendChild(octRow);
   const pickerWrap=document.createElement('div');pickerWrap.className='keyboard-picker-wrap';let pickerSelected=[...S.songPickerNotes];
   function refreshPicker(){pickerWrap.innerHTML='';const startM=pickerOct*12,endM=(pickerOct+3)*12-1;const svgEl=pianoSVG(pickerSelected,null,startM,endM,20,96,13,62,false,(midi)=>{const idx=pickerSelected.indexOf(midi);if(idx>=0)pickerSelected.splice(idx,1);else pickerSelected.push(midi);pickerSelected=[...new Set(pickerSelected)].sort((a,b)=>a-b);S.songPickerNotes=[...pickerSelected];refreshPicker();updateDetection();playSingle(midi)});pickerWrap.appendChild(svgEl)}
-  wrap.appendChild(pickerWrap);
-  const selRow=document.createElement('div');selRow.className='selected-notes-row';const detName=document.createElement('div');detName.className='detected-chord-name';const detLbl=document.createElement('div');detLbl.style.cssText='font-size:.58rem;color:var(--dim);text-transform:uppercase;letter-spacing:.08em;text-align:center';detLbl.textContent='Detected chord:';
-  const lblRow=document.createElement('div');lblRow.style.cssText='display:flex;gap:.5rem;align-items:center;flex-wrap:wrap';const lblLbl=document.createElement('span');lblLbl.style.cssText='font-size:.58rem;color:var(--dim);white-space:nowrap;text-transform:uppercase;letter-spacing:.08em';lblLbl.textContent='Label:';const labelIn=document.createElement('input');labelIn.className='chord-label-input';labelIn.placeholder='Auto-detected, or type your own…';labelIn.style.flex='1';let autoLabel=false;labelIn.oninput=()=>{autoLabel=false};lblRow.appendChild(lblLbl);lblRow.appendChild(labelIn);
-  const romanRow=document.createElement('div');romanRow.className='roman-quick-btns';const qlbl=document.createElement('span');qlbl.style.cssText='font-size:.56rem;color:var(--dim);align-self:center;margin-right:.2rem';qlbl.textContent='Quick:';romanRow.appendChild(qlbl);['I','II','III','IV','V','VI','VII','i','ii','iii','iv','v','vi','vii°'].forEach(r=>{const b=document.createElement('button');b.className='roman-btn';b.textContent=r;b.onclick=()=>{labelIn.value=r;autoLabel=false};romanRow.appendChild(b)});
+  rightCol.appendChild(pickerWrap);
+  const selRow=document.createElement('div');selRow.className='selected-notes-row';
+  const detName=document.createElement('div');detName.className='detected-chord-name';
+  const detLbl=document.createElement('div');detLbl.style.cssText='font-size:.58rem;color:var(--dim);text-transform:uppercase;letter-spacing:.08em;text-align:center';detLbl.textContent='Detected chord:';
+  const lblRow=document.createElement('div');lblRow.style.cssText='display:flex;gap:.5rem;align-items:center;flex-wrap:wrap';
+  const lblLbl=document.createElement('span');lblLbl.style.cssText='font-size:.58rem;color:var(--dim);white-space:nowrap;text-transform:uppercase;letter-spacing:.08em';lblLbl.textContent='Label:';
+  const labelIn=document.createElement('input');labelIn.className='chord-label-input';labelIn.placeholder='Auto-detected, or type your own…';labelIn.style.flex='1';let autoLabel=false;labelIn.oninput=()=>{autoLabel=false};
+  lblRow.appendChild(lblLbl);lblRow.appendChild(labelIn);
+  const romanRow=document.createElement('div');romanRow.className='roman-quick-btns';const qlbl=document.createElement('span');qlbl.style.cssText='font-size:.56rem;color:var(--dim);align-self:center;margin-right:.2rem';qlbl.textContent='Quick:';romanRow.appendChild(qlbl);
+  ['I','II','III','IV','V','VI','VII','i','ii','iii','iv','v','vi','vii°'].forEach(r=>{const b=document.createElement('button');b.className='roman-btn';b.textContent=r;b.onclick=()=>{labelIn.value=r;autoLabel=false};romanRow.appendChild(b)});
   function updateDetection(){selRow.innerHTML='';if(!pickerSelected.length){selRow.innerHTML='<span style="font-size:.62rem;color:var(--dim)">No notes selected — click piano keys above</span>';detName.textContent='';labelIn.value='';return}pickerSelected.forEach(m=>{const chip=document.createElement('span');chip.className='sel-note-chip';chip.textContent=`${nLabel(m%12,'C')}${Math.floor(m/12)-1}`;chip.title='Click to remove';chip.onclick=()=>{const i=pickerSelected.indexOf(m);if(i>=0){pickerSelected.splice(i,1);S.songPickerNotes=[...pickerSelected];refreshPicker();updateDetection()}};selRow.appendChild(chip)});const det=detectChord(pickerSelected);if(det){detName.textContent=det.label;if(autoLabel||!labelIn.value){labelIn.value=det.label;autoLabel=true}}else{detName.textContent=pickerSelected.map(m=>nLabel(m%12,'C')).join('-');if(autoLabel||!labelIn.value){labelIn.value='';autoLabel=true}}}
-  const btnRow=document.createElement('div');btnRow.style.cssText='display:flex;gap:.5rem;flex-wrap:wrap';const addBtn=document.createElement('button');addBtn.className='abtn pri';addBtn.textContent='+ Add Chord';addBtn.onclick=()=>{if(!pickerSelected.length)return;const label=labelIn.value.trim()||detName.textContent||'Chord';song.chords.push({notes:[...pickerSelected],label});pickerSelected=[];S.songPickerNotes=[];labelIn.value='';autoLabel=false;saveAll();renderSongLibrary()};const playSelBtn=document.createElement('button');playSelBtn.className='abtn sec';playSelBtn.textContent='▶ Play selection';playSelBtn.onclick=()=>{if(pickerSelected.length)playMidiList(pickerSelected)};const clrBtn=document.createElement('button');clrBtn.className='abtn sec';clrBtn.textContent='Clear';clrBtn.onclick=()=>{pickerSelected=[];S.songPickerNotes=[];refreshPicker();updateDetection()};btnRow.appendChild(addBtn);btnRow.appendChild(playSelBtn);btnRow.appendChild(clrBtn);
-  wrap.appendChild(selRow);wrap.appendChild(detLbl);wrap.appendChild(detName);wrap.appendChild(lblRow);wrap.appendChild(romanRow);wrap.appendChild(btnRow);
-  refreshPicker();updateDetection();main.appendChild(wrap);
+  const btnRow=document.createElement('div');btnRow.style.cssText='display:flex;gap:.5rem;flex-wrap:wrap;margin-top:.3rem';
+  const addBtn=document.createElement('button');addBtn.className='abtn pri';addBtn.textContent='+ Add Chord';
+  addBtn.onclick=()=>{if(!pickerSelected.length)return;const label=labelIn.value.trim()||detName.textContent||'Chord';song.chords.push({notes:[...pickerSelected],label});pickerSelected=[];S.songPickerNotes=[];labelIn.value='';autoLabel=false;saveAll();renderSongLibrary()};
+  const playSelBtn=document.createElement('button');playSelBtn.className='abtn sec';playSelBtn.textContent='▶ Play';playSelBtn.onclick=()=>{if(pickerSelected.length)playMidiList(pickerSelected)};
+  const clrBtn=document.createElement('button');clrBtn.className='abtn sec';clrBtn.textContent='Clear';clrBtn.onclick=()=>{pickerSelected=[];S.songPickerNotes=[];refreshPicker();updateDetection()};
+  btnRow.appendChild(addBtn);btnRow.appendChild(playSelBtn);btnRow.appendChild(clrBtn);
+  rightCol.appendChild(selRow);rightCol.appendChild(detLbl);rightCol.appendChild(detName);rightCol.appendChild(lblRow);rightCol.appendChild(romanRow);rightCol.appendChild(btnRow);
+  refreshPicker();updateDetection();
+
+  cols.appendChild(rightCol);
+  wrap.appendChild(cols);main.appendChild(wrap);
 }
 function renderScaleView(){
   const main=document.getElementById('main-area');main.innerHTML='';const ri=nIdx(S.svKey),scaleData=SCALES[S.svScale],scaleIv=scaleData.iv,key=S.svKey;const wrap=document.createElement('div');wrap.className='scale-wrap';const hdr=document.createElement('div');hdr.className='scale-header';hdr.innerHTML=`<h2>${key} ${scaleData.name}</h2><span class="sc-sub">${scaleData.formula}</span>`;const playRow=document.createElement('div');playRow.className='toolbar';playRow.appendChild(toolBtn(`▶ Play ${S.svOctaves} oct`,()=>playScaleMidi(ri,scaleIv,S.svOctaves,S.svPlayDown)));hdr.appendChild(playRow);wrap.appendChild(hdr);
@@ -1176,6 +1391,7 @@ function buildChordTypeList(){const el=document.getElementById('ctype-list');el.
 function buildOverlayChordSelect(){const el=document.getElementById('sel-ov-chord-type');el.innerHTML='';CHORD_GROUPS.forEach(g=>{const og=document.createElement('optgroup');og.label=g.group;g.chords.forEach(c=>{const o=document.createElement('option');o.value=c.name;o.textContent=`${c.name} (${c.sym||'—'})`;if(c.name===S.ovChordType)o.selected=true;og.appendChild(o)});el.appendChild(og)})}
 function buildBuilderTypeSelect(){const el=document.getElementById('sel-builder-type');el.innerHTML='';CHORD_GROUPS.forEach(g=>{const og=document.createElement('optgroup');og.label=g.group;g.chords.forEach(c=>{const o=document.createElement('option');o.value=c.name;o.textContent=`${c.name} (${c.sym||'—'})`;og.appendChild(o)});el.appendChild(og)})}
 function setMode(m){
+  _stopSongLibPoll();
   S.mode=m;document.querySelectorAll('[data-mode]').forEach(b=>b.classList.toggle('on',b.dataset.mode===m));
   ['diatonic','browser','scaleview','progression','overlay','builder','cluster','songlib'].forEach(p=>{const el=document.getElementById('p-'+p);if(el)el.classList.toggle('vis',p===m)});
   document.getElementById('gen-btns').style.display=['diatonic','browser','progression'].includes(m)?'flex':'none';
