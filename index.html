@@ -5,7 +5,6 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Piano Chord Reference</title>
 <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,400;0,700;1,400&family=DM+Mono:wght@300;400;500&display=swap" rel="stylesheet">
-<script src="https://cdnjs.cloudflare.com/ajax/libs/tone/14.8.49/Tone.js"></script>
 <style>
 :root{
   --bg:#0c0c0f;--surface:#13131a;--surface2:#1b1b24;--surface3:#22222e;
@@ -1077,116 +1076,153 @@ function buildMidiMonitorSVG(notes,rootPc){
 // AUDIO
 // ════════════════════════════════════════════════════
 // ════════════════════════════════════════════════════
-// PIANO AUDIO — Tone.js + Salamander Grand Piano samples
-// Samples hosted on gleitz/midi-js-soundfonts CDN (no files needed).
-// The sampler lazy-loads on first user interaction, then stays ready.
-// Metronome keeps its own raw WebAudio click (no sample needed there).
+// PIANO AUDIO — Pure WebAudio piano synthesis
+// No samples, no CDN, no loading time. Instant.
+// Uses layered oscillators + filters + envelopes to
+// approximate a real piano tone across the full range.
 // ════════════════════════════════════════════════════
-let _sampler=null,_samplerReady=false,_samplerLoading=false,_samplerQueue=[];
-
-// Tone.js is loaded from CDN in <head> — we reference it as Tone.*
-// 12 notes spread across 4 octaves from the Salamander piano (mp3, ~20KB each)
-const SAMPLE_BASE='https://gleitz.github.io/midi-js-soundfonts/MusyngKite/acoustic_grand_piano-mp3/';
-const SAMPLE_MAP={
-  'A1':'A1','C2':'C2','Ds2':'Ds2','Fs2':'Fs2',
-  'A2':'A2','C3':'C3','Ds3':'Ds3','Fs3':'Fs3',
-  'A3':'A3','C4':'C4','Ds4':'Ds4','Fs4':'Fs4',
-  'A4':'A4','C5':'C5','Ds5':'Ds5','Fs5':'Fs5',
-  'A5':'A5','C6':'C6','Ds6':'Ds6','Fs6':'Fs6',
-};
-// Build the urls object for Tone.Sampler
-const SAMPLER_URLS={};
-Object.keys(SAMPLE_MAP).forEach(k=>{SAMPLER_URLS[k]=SAMPLE_BASE+SAMPLE_MAP[k]+'.mp3'});
-
-function _showLoadingToast(){
-  let t=document.getElementById('_piano-toast');
-  if(!t){t=document.createElement('div');t.id='_piano-toast';t.style.cssText='position:fixed;bottom:170px;left:50%;transform:translateX(-50%);background:var(--surface);border:1px solid var(--gold);color:var(--gold);padding:.5rem 1.2rem;border-radius:6px;font-family:"DM Mono",monospace;font-size:.65rem;z-index:999;pointer-events:none;transition:opacity .4s;letter-spacing:.06em';document.body.appendChild(t)}
-  t.textContent='🎹 Loading piano samples…';t.style.opacity='1';
-}
-function _hideLoadingToast(){
-  const t=document.getElementById('_piano-toast');
-  if(t){t.textContent='🎹 Piano ready';setTimeout(()=>{t.style.opacity='0';setTimeout(()=>t.remove(),400)},900)}
+let _AC = null;
+function _ac() {
+  if (!_AC) _AC = new (window.AudioContext || window.webkitAudioContext)();
+  if (_AC.state === 'suspended') _AC.resume();
+  return _AC;
 }
 
-function _initSampler(cb){
-  if(_samplerReady){if(cb)cb();return;}
-  if(cb)_samplerQueue.push(cb);
-  if(_samplerLoading)return;
-  _samplerLoading=true;
-  _showLoadingToast();
-  // Tone.js must be loaded by now (script tag in <head>)
-  Tone.start().then(()=>{
-    _sampler=new Tone.Sampler({urls:SAMPLER_URLS,release:2,onload:()=>{
-      _samplerReady=true;_samplerLoading=false;_hideLoadingToast();
-      _samplerQueue.forEach(fn=>fn());_samplerQueue=[];
-    }}).toDestination();
-  });
+// Master output with a gentle limiter to prevent clipping
+let _master = null;
+function _getMaster() {
+  if (_master) return _master;
+  const ctx = _ac();
+  const comp = ctx.createDynamicsCompressor();
+  comp.threshold.value = -18;
+  comp.knee.value = 12;
+  comp.ratio.value = 4;
+  comp.attack.value = 0.003;
+  comp.release.value = 0.15;
+  comp.connect(ctx.destination);
+  _master = comp;
+  return _master;
 }
 
-// Convert MIDI number → Tone.js note name (e.g. 60 → "C4")
-function _midiToTone(midi){
-  const names=['C','Db','D','Eb','E','F','Gb','G','Ab','A','Bb','B'];
-  return names[midi%12]+(Math.floor(midi/12)-1);
-}
+function m2f(midi) { return 440 * Math.pow(2, (midi - 69) / 12); }
 
-// Main note player — uses sampler when ready, falls back to synth while loading
-function playNote(midi,when,dur=1.8,vol=.15){
-  const toneNote=_midiToTone(midi);
-  const toneWhen=when!==undefined?when:Tone.now();
-  if(_samplerReady){
-    _sampler.triggerAttackRelease(toneNote,dur,toneWhen,Math.min(1,vol*5));
-    return;
+// Piano synthesis: layered sine/triangle waves + inharmonic partials
+// tuned to sound warmer/more natural across octaves
+function playNote(midi, when, dur = 1.6, vol = 0.18) {
+  const ctx = _ac();
+  if (when === undefined || when < ctx.currentTime) when = ctx.currentTime;
+  const freq = m2f(midi);
+  const master = _getMaster();
+
+  // Scale volume and character by register
+  const octave = Math.floor(midi / 12) - 1;
+  const isLow = octave <= 3;
+  const isHigh = octave >= 6;
+  const gainScale = isLow ? 1.3 : isHigh ? 0.75 : 1.0;
+  const decayMult = isLow ? 1.4 : isHigh ? 0.6 : 1.0;
+  const actualVol = Math.min(0.5, vol * gainScale);
+  const actualDur = Math.min(4, dur * decayMult);
+
+  // Attack times
+  const atk = 0.004;
+  const decay1 = 0.05 + (midi / 127) * 0.04;
+  const sustain = 0.35;
+
+  // Layer 1: fundamental (sine — clean core tone)
+  const osc1 = ctx.createOscillator();
+  const g1 = ctx.createGain();
+  osc1.type = 'sine';
+  osc1.frequency.value = freq;
+  g1.gain.setValueAtTime(0, when);
+  g1.gain.linearRampToValueAtTime(actualVol, when + atk);
+  g1.gain.exponentialRampToValueAtTime(actualVol * sustain, when + decay1);
+  g1.gain.exponentialRampToValueAtTime(0.0001, when + actualDur);
+  osc1.connect(g1); g1.connect(master);
+  osc1.start(when); osc1.stop(when + actualDur + 0.05);
+
+  // Layer 2: second partial (octave up, triangle — warmth)
+  const osc2 = ctx.createOscillator();
+  const g2 = ctx.createGain();
+  osc2.type = 'triangle';
+  osc2.frequency.value = freq * 2.0;
+  const v2 = actualVol * (isLow ? 0.45 : 0.3);
+  g2.gain.setValueAtTime(0, when);
+  g2.gain.linearRampToValueAtTime(v2, when + atk);
+  g2.gain.exponentialRampToValueAtTime(v2 * 0.2, when + decay1 * 1.5);
+  g2.gain.exponentialRampToValueAtTime(0.0001, when + actualDur * 0.6);
+  osc2.connect(g2); g2.connect(master);
+  osc2.start(when); osc2.stop(when + actualDur * 0.65);
+
+  // Layer 3: third partial (slight inharmonicity — brightness)
+  const osc3 = ctx.createOscillator();
+  const g3 = ctx.createGain();
+  osc3.type = 'sine';
+  // Slight inharmonic stretch, more pronounced in bass
+  const inharmonic = isLow ? 1.008 : 1.001;
+  osc3.frequency.value = freq * 3.0 * inharmonic;
+  const v3 = actualVol * (isHigh ? 0.08 : 0.15);
+  g3.gain.setValueAtTime(0, when);
+  g3.gain.linearRampToValueAtTime(v3, when + atk * 0.5);
+  g3.gain.exponentialRampToValueAtTime(0.0001, when + actualDur * 0.3);
+  osc3.connect(g3); g3.connect(master);
+  osc3.start(when); osc3.stop(when + actualDur * 0.35);
+
+  // Layer 4: hammer click (short noise burst on attack — the "thump")
+  if (!isHigh) {
+    const bufSize = Math.floor(ctx.sampleRate * 0.018);
+    const buf = ctx.createBuffer(1, bufSize, ctx.sampleRate);
+    const data = buf.getChannelData(0);
+    for (let i = 0; i < bufSize; i++) data[i] = (Math.random() * 2 - 1) * (1 - i / bufSize);
+    const click = ctx.createBufferSource();
+    click.buffer = buf;
+    const clickF = ctx.createBiquadFilter();
+    clickF.type = 'bandpass';
+    clickF.frequency.value = isLow ? 280 : 800;
+    clickF.Q.value = 1.5;
+    const clickG = ctx.createGain();
+    clickG.gain.setValueAtTime(actualVol * (isLow ? 0.6 : 0.3), when);
+    clickG.gain.exponentialRampToValueAtTime(0.0001, when + 0.018);
+    click.connect(clickF); clickF.connect(clickG); clickG.connect(master);
+    click.start(when); click.stop(when + 0.025);
   }
-  // Fallback synth while sampler loads
-  try{
-    const ctx=Tone.context.rawContext||new AudioContext();
-    const osc=ctx.createOscillator(),g=ctx.createGain();
-    const freq=440*Math.pow(2,(midi-69)/12);
-    osc.type='triangle';osc.frequency.value=freq;
-    const now2=ctx.currentTime;
-    g.gain.setValueAtTime(0,now2);g.gain.linearRampToValueAtTime(vol,now2+.01);g.gain.exponentialRampToValueAtTime(.001,now2+dur);
-    osc.connect(g);g.connect(ctx.destination);osc.start(now2);osc.stop(now2+dur);
-  }catch(e){}
 }
 
-function _ensureAndPlay(fn){
-  if(_samplerReady){fn();}else{_initSampler(fn);}
+function playOffsets(offsets, rootSemi, delay = 0) {
+  const { midiNotes } = resolveToMidi(offsets, rootSemi);
+  const ctx = _ac();
+  const now = ctx.currentTime + delay;
+  midiNotes.forEach((m, i) => playNote(m, now + i * 0.04));
 }
-
-function playOffsets(offsets,rootSemi,delay=0){
-  _ensureAndPlay(()=>{
-    const{midiNotes}=resolveToMidi(offsets,rootSemi);
-    const now=Tone.now()+delay;
-    midiNotes.forEach((m,i)=>playNote(m,now+i*.04));
-  });
+function playMidiList(notes, delay = 0) {
+  const ctx = _ac();
+  const now = ctx.currentTime + delay;
+  [...notes].sort((a, b) => a - b).forEach((m, i) => playNote(m, now + i * 0.03));
 }
-function playMidiList(notes,delay=0){
-  _ensureAndPlay(()=>{
-    const now=Tone.now()+delay;
-    [...notes].sort((a,b)=>a-b).forEach((m,i)=>playNote(m,now+i*.03));
-  });
+function playSingle(midi) {
+  playNote(midi, _ac().currentTime, 1.2, 0.2);
 }
-function playSingle(midi){
-  _ensureAndPlay(()=>playNote(midi,Tone.now(),.8,.18));
+function playScaleMidi(rootSemi, scaleIv, octaves, playDown) {
+  const ctx = _ac();
+  const base = 60 + rootSemi - (rootSemi > 6 ? 12 : 0);
+  const beat = 60 / Math.max(30, S.metronomeBpm);
+  const up = [];
+  for (let o = 0; o < octaves; o++) scaleIv.forEach(s => up.push(base + s + o * 12));
+  up.push(base + octaves * 12);
+  const all = playDown ? [...up, ...up.slice(0, -1).reverse()] : up;
+  const now = ctx.currentTime;
+  all.forEach((m, i) => playNote(m, now + i * beat * 0.5, 0.7, 0.16));
 }
-function playScaleMidi(rootSemi,scaleIv,octaves,playDown){
-  _ensureAndPlay(()=>{
-    const base=60+rootSemi-(rootSemi>6?12:0),beat=60/Math.max(30,S.metronomeBpm);
-    const up=[];for(let o=0;o<octaves;o++)scaleIv.forEach(s=>up.push(base+s+o*12));up.push(base+octaves*12);
-    const all=playDown?[...up,...up.slice(0,-1).reverse()]:up;
-    const now=Tone.now();
-    all.forEach((m,i)=>playNote(m,now+i*beat*.5,.6,.16));
-  });
-}
-let metroTimer=null,tapTimes=[],_metroCtx=null;
-function _getMetroCtx(){if(!_metroCtx)_metroCtx=new(window.AudioContext||window.webkitAudioContext)();return _metroCtx}
+let metroTimer=null, tapTimes=[];
 function tick(){
-  const ctx=_getMetroCtx();if(ctx.state==='suspended')ctx.resume();
+  const ctx=_ac();
   const now=ctx.currentTime,osc=ctx.createOscillator(),g=ctx.createGain();
   osc.type='square';osc.frequency.value=1400;
-  g.gain.setValueAtTime(0,now);g.gain.linearRampToValueAtTime(Math.max(0,Math.min(.45,S.metronomeVolume)),now+.001);g.gain.exponentialRampToValueAtTime(.001,now+.06);
+  g.gain.setValueAtTime(0,now);
+  g.gain.linearRampToValueAtTime(Math.max(0,Math.min(.45,S.metronomeVolume)),now+.001);
+  g.gain.exponentialRampToValueAtTime(.001,now+.06);
   osc.connect(g);g.connect(ctx.destination);osc.start(now);osc.stop(now+.07);
-  const b=document.getElementById('btn-metronome');if(b){b.style.color='var(--gold)';setTimeout(()=>b.style.color='',80)}
+  const b=document.getElementById('btn-metronome');
+  if(b){b.style.color='var(--gold)';setTimeout(()=>b.style.color='',80)}
 }
 function stopMetro(){if(metroTimer){clearInterval(metroTimer);metroTimer=null}S.metronomeOn=false;updateMetroUI()}
 function startMetro(){stopMetro();tick();metroTimer=setInterval(tick,60000/Math.max(30,S.metronomeBpm));S.metronomeOn=true;updateMetroUI()}
@@ -1220,10 +1256,11 @@ function handleMidiMsg(e){
   if(cmd===0x90&&vel>0){
     if(!S.heldMidiNotes.includes(note))S.heldMidiNotes.push(note);
     S.heldMidiNotes=[...new Set(S.heldMidiNotes)].sort((a,b)=>a-b);
-    _ensureAndPlay(()=>{if(_sampler&&_samplerReady){_sampler.triggerAttack(_midiToTone(note),Tone.now(),vel/127);liveVoices.set(note,'sampler');}});
+    playNote(note, _ac().currentTime, 3.0, (vel/127)*0.22);
+    liveVoices.set(note, 1);
   } else if(cmd===0x80||(cmd===0x90&&vel===0)){
     S.heldMidiNotes=S.heldMidiNotes.filter(n=>n!==note);
-    if(_sampler&&_samplerReady&&liveVoices.get(note)==='sampler'){_sampler.triggerRelease(_midiToTone(note),Tone.now()+.05);liveVoices.delete(note);}
+    liveVoices.delete(note);
   }
   updateMidiBar();
 }
@@ -1709,10 +1746,10 @@ function renderPractice(){
     }else if(ex.id==='lh_rh'){
       const exNotes=getExerciseNotes(ex.id,rootMidi);
       exNotes.lhChords.forEach((ch,i)=>playMidiList(ch,i*2));
-      _ensureAndPlay(()=>{const now=Tone.now();exNotes.scaleNotes.forEach((n,i)=>playNote(n,now+i*(60/S.practiceSpeed)));});
+      const _n=_ac().currentTime;exNotes.scaleNotes.forEach((n,i)=>playNote(n,_n+i*(60/S.practiceSpeed)));
     }else{
       let exNotes=getExerciseNotes(ex.id,rootMidi);
-      if(Array.isArray(exNotes))_ensureAndPlay(()=>{const now=Tone.now();[...exNotes].forEach((m,i)=>playNote(m,now+(i*(60/S.practiceSpeed)*.5)));});
+      if(Array.isArray(exNotes)){const _n=_ac().currentTime;[...exNotes].forEach((m,i)=>playNote(m,_n+(i*(60/S.practiceSpeed)*.5)));}
     }
   };
   controls.appendChild(speedLabel);controls.appendChild(slider);controls.appendChild(sLabel);controls.appendChild(playBtn);
