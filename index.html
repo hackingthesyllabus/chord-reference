@@ -1550,7 +1550,7 @@ function startPracticePlayback(notes,bpm,kbdEl,dotsEl){
       stopPracticePlayback();return;
     }
     const cur=isArray?practiceNotes[practiceStepIdx]:[practiceNotes[practiceStepIdx]];
-        const now=ctx.currentTime;
+    const now=_ac().currentTime;
     cur.forEach(m=>playNote(m,now,1.2,.12));
     highlightPracticeStep(practiceStepIdx,practiceNotes,kbdEl,dotsEl);
     practiceStepIdx++;
@@ -1625,58 +1625,6 @@ function renderPractice(){
     b.textContent=k;b.onclick=()=>{S.practiceKey=k;stopPracticePlayback();renderPractice()};keyRow.appendChild(b);
   });
   panel.appendChild(keyRow);
-
-  // ── Formula box
-  const fbox=document.createElement('div');fbox.className='formula-box';
-  const ftitle=document.createElement('div');ftitle.className='formula-title';ftitle.textContent='Formula';fbox.appendChild(ftitle);
-  const formulaDesc=document.createElement('div');formulaDesc.style.cssText='font-size:.72rem;color:var(--gold);font-family:"Playfair Display",serif;margin-bottom:.5rem;letter-spacing:.04em';
-  formulaDesc.textContent=ex.formula;fbox.appendChild(formulaDesc);
-
-  // Visual note formula
-  if(ex.id!=='ii_V_I'&&ex.id!=='lh_rh'){
-    const fd=buildFormulaDisplay(ex,rootKey);
-    if(fd.notes.length){
-      const fstepsRow=document.createElement('div');fstepsRow.className='formula-steps';
-      fd.notes.forEach((note,i)=>{
-        const st=document.createElement('div');
-        st.className='fstep'+(i===0?' is-root':fd.notes.length>4&&i===fd.notes.length-1?' is-hi':'');
-        st.innerHTML=`<div class="fstep-note">${note}</div><div class="fstep-num">${i===0?'R':(i+1)}</div>`;
-        fstepsRow.appendChild(st);
-        if(i<fd.seps.length){
-          const sep=document.createElement('div');sep.className='fstep-sep';sep.textContent=fd.seps[i];fstepsRow.appendChild(sep);
-        }
-      });
-      fbox.appendChild(fstepsRow);
-    }
-  }else if(ex.id==='ii_V_I'){
-    const chordNames=['Dm7','G7','Cmaj7'].map(c=>{
-      const rootPc=c.startsWith('D')?ri+2:c.startsWith('G')?ri+7:ri;
-      return nLabel(rootPc%12,rootKey)+(c.includes('m7')&&!c.includes('aj')?'m7':c.includes('7')&&!c.includes('m')&&!c.includes('aj')&&!c.includes('M')?'7':'maj7');
-    });
-    const posA=document.createElement('div');posA.style.cssText='display:flex;gap:1rem;flex-wrap:wrap';
-    ['A Position','B Position'].forEach(pos=>{
-      const box=document.createElement('div');box.style.cssText='background:var(--surface3);border:1px solid var(--border);border-radius:6px;padding:.6rem .9rem';
-      box.innerHTML=`<div style="font-size:.56rem;letter-spacing:.1em;text-transform:uppercase;color:var(--dim);margin-bottom:.4rem">${pos}</div>`;
-      const cRow=document.createElement('div');cRow.style.cssText='display:flex;gap:.5rem;align-items:center';
-      chordNames.forEach((cn,ci)=>{
-        const c=document.createElement('div');c.className='fstep';c.style.minWidth='48px';
-        c.innerHTML=`<div class="fstep-note" style="font-size:.75rem">${cn}</div><div class="fstep-num">${ci===0?'ii':ci===1?'V':'I'}</div>`;
-        cRow.appendChild(c);
-        if(ci<2){const sep=document.createElement('div');sep.className='fstep-sep';sep.textContent='→';cRow.appendChild(sep)}
-      });
-      box.appendChild(cRow);posA.appendChild(box);
-    });
-    fbox.appendChild(posA);
-  }else{
-    const lhrh=document.createElement('div');lhrh.innerHTML=`
-      <div style="display:flex;gap:1rem;flex-wrap:wrap;margin-top:.3rem">
-        <div class="fstep" style="min-width:100px;align-items:flex-start;padding:.6rem"><div class="fstep-note" style="font-size:.75rem;color:var(--blue)">Left Hand</div><div style="font-size:.6rem;color:var(--dim);margin-top:.3rem;line-height:1.7">ii–V–I voicings<br>(Dm7, G7, Cmaj7)</div></div>
-        <div class="fstep-sep" style="align-self:center">+</div>
-        <div class="fstep" style="min-width:100px;align-items:flex-start;padding:.6rem"><div class="fstep-note" style="font-size:.75rem;color:var(--pink)">Right Hand</div><div style="font-size:.6rem;color:var(--dim);margin-top:.3rem;line-height:1.7">Major scale runs<br>over LH chords</div></div>
-      </div>`;
-    fbox.appendChild(lhrh);
-  }
-  panel.appendChild(fbox);
 
   // ── Keyboard visualization + animated playback
   const kbdBox=document.createElement('div');kbdBox.className='ex-keyboard-box';
@@ -1757,6 +1705,58 @@ function renderPractice(){
   kbdBox.appendChild(controls);
   panel.appendChild(kbdBox);
 
+  // ── Formula box
+  const fbox=document.createElement('div');fbox.className='formula-box';
+  const ftitle=document.createElement('div');ftitle.className='formula-title';ftitle.textContent='Formula';fbox.appendChild(ftitle);
+  const formulaDesc=document.createElement('div');formulaDesc.style.cssText='font-size:.72rem;color:var(--gold);font-family:"Playfair Display",serif;margin-bottom:.5rem;letter-spacing:.04em';
+  formulaDesc.textContent=ex.formula;fbox.appendChild(formulaDesc);
+
+  // Visual note formula
+  if(ex.id!=='ii_V_I'&&ex.id!=='lh_rh'){
+    const fd=buildFormulaDisplay(ex,rootKey);
+    if(fd.notes.length){
+      const fstepsRow=document.createElement('div');fstepsRow.className='formula-steps';
+      fd.notes.forEach((note,i)=>{
+        const st=document.createElement('div');
+        st.className='fstep'+(i===0?' is-root':fd.notes.length>4&&i===fd.notes.length-1?' is-hi':'');
+        st.innerHTML=`<div class="fstep-note">${note}</div><div class="fstep-num">${i===0?'R':(i+1)}</div>`;
+        fstepsRow.appendChild(st);
+        if(i<fd.seps.length){
+          const sep=document.createElement('div');sep.className='fstep-sep';sep.textContent=fd.seps[i];fstepsRow.appendChild(sep);
+        }
+      });
+      fbox.appendChild(fstepsRow);
+    }
+  }else if(ex.id==='ii_V_I'){
+    const chordNames=['Dm7','G7','Cmaj7'].map(c=>{
+      const rootPc=c.startsWith('D')?ri+2:c.startsWith('G')?ri+7:ri;
+      return nLabel(rootPc%12,rootKey)+(c.includes('m7')&&!c.includes('aj')?'m7':c.includes('7')&&!c.includes('m')&&!c.includes('aj')&&!c.includes('M')?'7':'maj7');
+    });
+    const posA=document.createElement('div');posA.style.cssText='display:flex;gap:1rem;flex-wrap:wrap';
+    ['A Position','B Position'].forEach(pos=>{
+      const box=document.createElement('div');box.style.cssText='background:var(--surface3);border:1px solid var(--border);border-radius:6px;padding:.6rem .9rem';
+      box.innerHTML=`<div style="font-size:.56rem;letter-spacing:.1em;text-transform:uppercase;color:var(--dim);margin-bottom:.4rem">${pos}</div>`;
+      const cRow=document.createElement('div');cRow.style.cssText='display:flex;gap:.5rem;align-items:center';
+      chordNames.forEach((cn,ci)=>{
+        const c=document.createElement('div');c.className='fstep';c.style.minWidth='48px';
+        c.innerHTML=`<div class="fstep-note" style="font-size:.75rem">${cn}</div><div class="fstep-num">${ci===0?'ii':ci===1?'V':'I'}</div>`;
+        cRow.appendChild(c);
+        if(ci<2){const sep=document.createElement('div');sep.className='fstep-sep';sep.textContent='→';cRow.appendChild(sep)}
+      });
+      box.appendChild(cRow);posA.appendChild(box);
+    });
+    fbox.appendChild(posA);
+  }else{
+    const lhrh=document.createElement('div');lhrh.innerHTML=`
+      <div style="display:flex;gap:1rem;flex-wrap:wrap;margin-top:.3rem">
+        <div class="fstep" style="min-width:100px;align-items:flex-start;padding:.6rem"><div class="fstep-note" style="font-size:.75rem;color:var(--blue)">Left Hand</div><div style="font-size:.6rem;color:var(--dim);margin-top:.3rem;line-height:1.7">ii–V–I voicings<br>(Dm7, G7, Cmaj7)</div></div>
+        <div class="fstep-sep" style="align-self:center">+</div>
+        <div class="fstep" style="min-width:100px;align-items:flex-start;padding:.6rem"><div class="fstep-note" style="font-size:.75rem;color:var(--pink)">Right Hand</div><div style="font-size:.6rem;color:var(--dim);margin-top:.3rem;line-height:1.7">Major scale runs<br>over LH chords</div></div>
+      </div>`;
+    fbox.appendChild(lhrh);
+  }
+  panel.appendChild(fbox);
+
   // ── Tips box
   const tipBox=document.createElement('div');tipBox.className='formula-box';
   tipBox.innerHTML=`<div class="formula-title">Practice Tips</div>`;
@@ -1782,7 +1782,7 @@ function renderPractice(){
     card.onclick=()=>{S.practiceKey=k;stopPracticePlayback();renderPractice();playMidiList(midis)};
     allKeysGrid.appendChild(card);
   });
-  panel.appendChild(allKeysGrid);
+  panel.appendChild(allKeysGrid)
   wrap.appendChild(panel);
   main.appendChild(wrap);
 }
