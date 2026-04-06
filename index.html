@@ -5,6 +5,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Piano Chord Reference</title>
 <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,400;0,700;1,400&family=DM+Mono:wght@300;400;500&display=swap" rel="stylesheet">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/tone/14.8.49/Tone.js"></script>
 <style>
 :root{
   --bg:#0c0c0f;--surface:#13131a;--surface2:#1b1b24;--surface3:#22222e;
@@ -1075,25 +1076,118 @@ function buildMidiMonitorSVG(notes,rootPc){
 // ════════════════════════════════════════════════════
 // AUDIO
 // ════════════════════════════════════════════════════
-let ACtx=null;
-function getACtx(){if(!ACtx)ACtx=new(window.AudioContext||window.webkitAudioContext)();return ACtx}
-function m2f(m){return 440*Math.pow(2,(m-69)/12)}
+// ════════════════════════════════════════════════════
+// PIANO AUDIO — Tone.js + Salamander Grand Piano samples
+// Samples hosted on gleitz/midi-js-soundfonts CDN (no files needed).
+// The sampler lazy-loads on first user interaction, then stays ready.
+// Metronome keeps its own raw WebAudio click (no sample needed there).
+// ════════════════════════════════════════════════════
+let _sampler=null,_samplerReady=false,_samplerLoading=false,_samplerQueue=[];
+
+// Tone.js is loaded from CDN in <head> — we reference it as Tone.*
+// 12 notes spread across 4 octaves from the Salamander piano (mp3, ~20KB each)
+const SAMPLE_BASE='https://gleitz.github.io/midi-js-soundfonts/MusyngKite/acoustic_grand_piano-mp3/';
+const SAMPLE_MAP={
+  'A1':'A1','C2':'C2','Ds2':'Ds2','Fs2':'Fs2',
+  'A2':'A2','C3':'C3','Ds3':'Ds3','Fs3':'Fs3',
+  'A3':'A3','C4':'C4','Ds4':'Ds4','Fs4':'Fs4',
+  'A4':'A4','C5':'C5','Ds5':'Ds5','Fs5':'Fs5',
+  'A5':'A5','C6':'C6','Ds6':'Ds6','Fs6':'Fs6',
+};
+// Build the urls object for Tone.Sampler
+const SAMPLER_URLS={};
+Object.keys(SAMPLE_MAP).forEach(k=>{SAMPLER_URLS[k]=SAMPLE_BASE+SAMPLE_MAP[k]+'.mp3'});
+
+function _showLoadingToast(){
+  let t=document.getElementById('_piano-toast');
+  if(!t){t=document.createElement('div');t.id='_piano-toast';t.style.cssText='position:fixed;bottom:170px;left:50%;transform:translateX(-50%);background:var(--surface);border:1px solid var(--gold);color:var(--gold);padding:.5rem 1.2rem;border-radius:6px;font-family:"DM Mono",monospace;font-size:.65rem;z-index:999;pointer-events:none;transition:opacity .4s;letter-spacing:.06em';document.body.appendChild(t)}
+  t.textContent='🎹 Loading piano samples…';t.style.opacity='1';
+}
+function _hideLoadingToast(){
+  const t=document.getElementById('_piano-toast');
+  if(t){t.textContent='🎹 Piano ready';setTimeout(()=>{t.style.opacity='0';setTimeout(()=>t.remove(),400)},900)}
+}
+
+function _initSampler(cb){
+  if(_samplerReady){if(cb)cb();return;}
+  if(cb)_samplerQueue.push(cb);
+  if(_samplerLoading)return;
+  _samplerLoading=true;
+  _showLoadingToast();
+  // Tone.js must be loaded by now (script tag in <head>)
+  Tone.start().then(()=>{
+    _sampler=new Tone.Sampler({urls:SAMPLER_URLS,release:2,onload:()=>{
+      _samplerReady=true;_samplerLoading=false;_hideLoadingToast();
+      _samplerQueue.forEach(fn=>fn());_samplerQueue=[];
+    }}).toDestination();
+  });
+}
+
+// Convert MIDI number → Tone.js note name (e.g. 60 → "C4")
+function _midiToTone(midi){
+  const names=['C','Db','D','Eb','E','F','Gb','G','Ab','A','Bb','B'];
+  return names[midi%12]+(Math.floor(midi/12)-1);
+}
+
+// Main note player — uses sampler when ready, falls back to synth while loading
 function playNote(midi,when,dur=1.8,vol=.15){
-  const ctx=getACtx();if(ctx.state==='suspended')ctx.resume();
-  ['triangle','sine'].forEach((type,j)=>{const osc=ctx.createOscillator(),g=ctx.createGain();osc.type=type;osc.frequency.value=m2f(midi)*(j?1.003:1);g.gain.setValueAtTime(0,when);g.gain.linearRampToValueAtTime(j?vol*.4:vol,when+.012);g.gain.exponentialRampToValueAtTime(.001,when+dur);osc.connect(g);g.connect(ctx.destination);osc.start(when);osc.stop(when+dur)});
+  const toneNote=_midiToTone(midi);
+  const toneWhen=when!==undefined?when:Tone.now();
+  if(_samplerReady){
+    _sampler.triggerAttackRelease(toneNote,dur,toneWhen,Math.min(1,vol*5));
+    return;
+  }
+  // Fallback synth while sampler loads
+  try{
+    const ctx=Tone.context.rawContext||new AudioContext();
+    const osc=ctx.createOscillator(),g=ctx.createGain();
+    const freq=440*Math.pow(2,(midi-69)/12);
+    osc.type='triangle';osc.frequency.value=freq;
+    const now2=ctx.currentTime;
+    g.gain.setValueAtTime(0,now2);g.gain.linearRampToValueAtTime(vol,now2+.01);g.gain.exponentialRampToValueAtTime(.001,now2+dur);
+    osc.connect(g);g.connect(ctx.destination);osc.start(now2);osc.stop(now2+dur);
+  }catch(e){}
 }
-function playOffsets(offsets,rootSemi,delay=0){const ctx=getACtx();if(ctx.state==='suspended')ctx.resume();const{midiNotes}=resolveToMidi(offsets,rootSemi);const now=ctx.currentTime+delay;midiNotes.forEach((m,i)=>playNote(m,now+i*.04))}
-function playMidiList(notes,delay=0){const ctx=getACtx();if(ctx.state==='suspended')ctx.resume();const now=ctx.currentTime+delay;[...notes].sort((a,b)=>a-b).forEach((m,i)=>playNote(m,now+i*.03))}
-function playSingle(midi){const ctx=getACtx();if(ctx.state==='suspended')ctx.resume();playNote(midi,ctx.currentTime,.5,.14)}
+
+function _ensureAndPlay(fn){
+  if(_samplerReady){fn();}else{_initSampler(fn);}
+}
+
+function playOffsets(offsets,rootSemi,delay=0){
+  _ensureAndPlay(()=>{
+    const{midiNotes}=resolveToMidi(offsets,rootSemi);
+    const now=Tone.now()+delay;
+    midiNotes.forEach((m,i)=>playNote(m,now+i*.04));
+  });
+}
+function playMidiList(notes,delay=0){
+  _ensureAndPlay(()=>{
+    const now=Tone.now()+delay;
+    [...notes].sort((a,b)=>a-b).forEach((m,i)=>playNote(m,now+i*.03));
+  });
+}
+function playSingle(midi){
+  _ensureAndPlay(()=>playNote(midi,Tone.now(),.8,.18));
+}
 function playScaleMidi(rootSemi,scaleIv,octaves,playDown){
-  const ctx=getACtx();if(ctx.state==='suspended')ctx.resume();
-  const base=60+rootSemi-(rootSemi>6?12:0),beat=60/Math.max(30,S.metronomeBpm);
-  const up=[];for(let o=0;o<octaves;o++)scaleIv.forEach(s=>up.push(base+s+o*12));up.push(base+octaves*12);
-  const all=playDown?[...up,...up.slice(0,-1).reverse()]:up;
-  all.forEach((m,i)=>playNote(m,ctx.currentTime+i*beat*.5,.4,.12));
+  _ensureAndPlay(()=>{
+    const base=60+rootSemi-(rootSemi>6?12:0),beat=60/Math.max(30,S.metronomeBpm);
+    const up=[];for(let o=0;o<octaves;o++)scaleIv.forEach(s=>up.push(base+s+o*12));up.push(base+octaves*12);
+    const all=playDown?[...up,...up.slice(0,-1).reverse()]:up;
+    const now=Tone.now();
+    all.forEach((m,i)=>playNote(m,now+i*beat*.5,.6,.16));
+  });
 }
-let metroTimer=null,tapTimes=[];
-function tick(){const ctx=getACtx();if(ctx.state==='suspended')ctx.resume();const now=ctx.currentTime,osc=ctx.createOscillator(),g=ctx.createGain();osc.type='square';osc.frequency.value=1400;g.gain.setValueAtTime(0,now);g.gain.linearRampToValueAtTime(Math.max(0,Math.min(.45,S.metronomeVolume)),now+.001);g.gain.exponentialRampToValueAtTime(.001,now+.06);osc.connect(g);g.connect(ctx.destination);osc.start(now);osc.stop(now+.07);const b=document.getElementById('btn-metronome');if(b){b.style.color='var(--gold)';setTimeout(()=>b.style.color='',80)}}
+let metroTimer=null,tapTimes=[],_metroCtx=null;
+function _getMetroCtx(){if(!_metroCtx)_metroCtx=new(window.AudioContext||window.webkitAudioContext)();return _metroCtx}
+function tick(){
+  const ctx=_getMetroCtx();if(ctx.state==='suspended')ctx.resume();
+  const now=ctx.currentTime,osc=ctx.createOscillator(),g=ctx.createGain();
+  osc.type='square';osc.frequency.value=1400;
+  g.gain.setValueAtTime(0,now);g.gain.linearRampToValueAtTime(Math.max(0,Math.min(.45,S.metronomeVolume)),now+.001);g.gain.exponentialRampToValueAtTime(.001,now+.06);
+  osc.connect(g);g.connect(ctx.destination);osc.start(now);osc.stop(now+.07);
+  const b=document.getElementById('btn-metronome');if(b){b.style.color='var(--gold)';setTimeout(()=>b.style.color='',80)}
+}
 function stopMetro(){if(metroTimer){clearInterval(metroTimer);metroTimer=null}S.metronomeOn=false;updateMetroUI()}
 function startMetro(){stopMetro();tick();metroTimer=setInterval(tick,60000/Math.max(30,S.metronomeBpm));S.metronomeOn=true;updateMetroUI()}
 function toggleMetro(){S.metronomeOn?stopMetro():startMetro()}
@@ -1123,8 +1217,14 @@ function updateMidiBar(){
 }
 function handleMidiMsg(e){
   const[st,note,vel]=e.data,cmd=st&0xf0;
-  if(cmd===0x90&&vel>0){if(!S.heldMidiNotes.includes(note))S.heldMidiNotes.push(note);S.heldMidiNotes=[...new Set(S.heldMidiNotes)].sort((a,b)=>a-b);const ctx=getACtx();if(ctx.state==='suspended')ctx.resume();const osc=ctx.createOscillator(),g=ctx.createGain();osc.type='sine';osc.frequency.value=m2f(note);g.gain.setValueAtTime(0,ctx.currentTime);g.gain.linearRampToValueAtTime(.09,ctx.currentTime+.01);osc.connect(g);g.connect(ctx.destination);osc.start();liveVoices.set(note,{osc,g});}
-  else if(cmd===0x80||(cmd===0x90&&vel===0)){S.heldMidiNotes=S.heldMidiNotes.filter(n=>n!==note);const v=liveVoices.get(note);if(v){const now=getACtx().currentTime;v.g.gain.cancelScheduledValues(now);v.g.gain.setValueAtTime(Math.max(.0001,v.g.gain.value||.08),now);v.g.gain.exponentialRampToValueAtTime(.001,now+.08);v.osc.stop(now+.09);liveVoices.delete(note)}}
+  if(cmd===0x90&&vel>0){
+    if(!S.heldMidiNotes.includes(note))S.heldMidiNotes.push(note);
+    S.heldMidiNotes=[...new Set(S.heldMidiNotes)].sort((a,b)=>a-b);
+    _ensureAndPlay(()=>{if(_sampler&&_samplerReady){_sampler.triggerAttack(_midiToTone(note),Tone.now(),vel/127);liveVoices.set(note,'sampler');}});
+  } else if(cmd===0x80||(cmd===0x90&&vel===0)){
+    S.heldMidiNotes=S.heldMidiNotes.filter(n=>n!==note);
+    if(_sampler&&_samplerReady&&liveVoices.get(note)==='sampler'){_sampler.triggerRelease(_midiToTone(note),Tone.now()+.05);liveVoices.delete(note);}
+  }
   updateMidiBar();
 }
 async function connectMidi(){if(!navigator.requestMIDIAccess){alert('Web MIDI not supported.');return}try{midiAccess=await navigator.requestMIDIAccess();let count=0;midiAccess.inputs.forEach(input=>{input.onmidimessage=handleMidiMsg;count++;if(!S.midiDeviceName)S.midiDeviceName=input.name||'MIDI device'});midiAccess.onstatechange=()=>{S.midiDeviceName='';let c=0;midiAccess.inputs.forEach(input=>{input.onmidimessage=handleMidiMsg;c++;if(!S.midiDeviceName)S.midiDeviceName=input.name||'MIDI device'});S.midiEnabled=c>0;updateMidiBar();saveAll()};S.midiEnabled=count>0;updateMidiBar();saveAll();}catch(err){alert('Could not connect MIDI: '+err.message)}}
@@ -1413,8 +1513,7 @@ function startPracticePlayback(notes,bpm,kbdEl,dotsEl){
       stopPracticePlayback();return;
     }
     const cur=isArray?practiceNotes[practiceStepIdx]:[practiceNotes[practiceStepIdx]];
-    const ctx=getACtx();if(ctx.state==='suspended')ctx.resume();
-    const now=ctx.currentTime;
+        const now=ctx.currentTime;
     cur.forEach(m=>playNote(m,now,1.2,.12));
     highlightPracticeStep(practiceStepIdx,practiceNotes,kbdEl,dotsEl);
     practiceStepIdx++;
@@ -1610,10 +1709,10 @@ function renderPractice(){
     }else if(ex.id==='lh_rh'){
       const exNotes=getExerciseNotes(ex.id,rootMidi);
       exNotes.lhChords.forEach((ch,i)=>playMidiList(ch,i*2));
-      exNotes.scaleNotes.forEach((n,i)=>playNote(n,getACtx().currentTime+i*(60/S.practiceSpeed)));
+      _ensureAndPlay(()=>{const now=Tone.now();exNotes.scaleNotes.forEach((n,i)=>playNote(n,now+i*(60/S.practiceSpeed)));});
     }else{
       let exNotes=getExerciseNotes(ex.id,rootMidi);
-      if(Array.isArray(exNotes))[...exNotes].forEach((m,i)=>playNote(m,getACtx().currentTime+(i*(60/S.practiceSpeed)*.5)));
+      if(Array.isArray(exNotes))_ensureAndPlay(()=>{const now=Tone.now();[...exNotes].forEach((m,i)=>playNote(m,now+(i*(60/S.practiceSpeed)*.5)));});
     }
   };
   controls.appendChild(speedLabel);controls.appendChild(slider);controls.appendChild(sLabel);controls.appendChild(playBtn);
