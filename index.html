@@ -423,6 +423,39 @@ input.song-name-input:focus{border-color:var(--gold)}
 .progress-bar-wrap{background:var(--surface2);border:1px solid var(--border);border-radius:6px;overflow:hidden;height:8px;min-width:80px}
 .progress-bar-fill{height:100%;background:var(--green);border-radius:6px;transition:width .4s ease}
 
+/* RCM Technical Tests */
+.tbtn[data-mode="rcm"].on{background:var(--pink);border-color:var(--pink)}
+.rcm-wrap{display:flex;flex-direction:column;gap:1rem;width:100%;max-width:960px}
+.rcm-header{display:flex;align-items:baseline;gap:.8rem;flex-wrap:wrap;margin-bottom:.3rem}
+.rcm-header h2{font-family:'Playfair Display',serif;font-size:1.4rem;color:var(--pink)}
+.rcm-marks{font-size:.62rem;color:var(--blue);background:var(--surface2);padding:.2rem .55rem;border-radius:4px;border:1px solid var(--border)}
+.rcm-section-sub{font-size:.65rem;color:var(--dim);margin-bottom:1rem;line-height:1.7}
+.rcm-cat-label{font-size:.58rem;letter-spacing:.12em;text-transform:uppercase;color:var(--dim);margin:1.2rem 0 .5rem;padding-bottom:.3rem;border-bottom:1px solid var(--border)}
+.rcm-card{background:var(--surface);border:1px solid var(--border);border-radius:8px;padding:.85rem;margin-bottom:.8rem;transition:border-color .15s}
+.rcm-card:hover{border-color:var(--gold)}
+.rcm-card h3{font-family:'Playfair Display',serif;font-size:1rem;color:var(--gold);margin-bottom:.5rem}
+.rcm-card-sub{font-size:.62rem;color:var(--dim);margin-bottom:.6rem;line-height:1.7}
+.rcm-table{width:100%;border-collapse:collapse;font-size:.65rem}
+.rcm-table th{text-align:left;padding:.4rem .5rem;color:var(--dim);font-weight:400;letter-spacing:.08em;text-transform:uppercase;font-size:.55rem;border-bottom:1px solid var(--border);background:var(--surface2)}
+.rcm-table td{padding:.45rem .5rem;border-bottom:1px solid var(--border);vertical-align:top;line-height:1.6}
+.rcm-table tr:last-child td{border-bottom:none}
+.rcm-table .key-list{color:var(--gold);font-weight:500}
+.rcm-table .tempo{color:var(--blue);white-space:nowrap}
+.rcm-kbd-row{display:flex;flex-wrap:wrap;gap:.6rem;margin:.6rem 0}
+.rcm-kbd-card{background:var(--surface2);border:1px solid var(--border);border-radius:7px;padding:.55rem .7rem;cursor:pointer;transition:all .14s;display:flex;flex-direction:column;align-items:center;gap:.3rem;min-width:80px}
+.rcm-kbd-card:hover{border-color:var(--gold);transform:translateY(-2px)}
+.rcm-kbd-card:active{transform:scale(.97)}
+.rcm-kbd-card .kname{font-family:'Playfair Display',serif;font-size:.82rem;color:var(--gold)}
+.rcm-kbd-card .ksub{font-size:.5rem;color:var(--dim)}
+.rcm-kbd-card svg{display:block}
+.rcm-info{background:var(--surface2);border:1px solid var(--border);border-radius:6px;padding:.7rem .9rem;font-size:.63rem;color:var(--dim);line-height:1.8;margin-top:1.5rem}
+.rcm-info strong{color:var(--text)}
+.rcm-level-btn{width:100%;padding:.42rem .6rem;background:var(--surface2);border:1px solid var(--border);border-radius:5px;color:var(--dim);font-family:'DM Mono',monospace;font-size:.68rem;cursor:pointer;transition:all .13s;text-align:left;display:flex;justify-content:space-between;align-items:center}
+.rcm-level-btn.on{background:var(--pink);color:var(--bg);border-color:var(--pink);font-weight:500}
+.rcm-level-btn:hover:not(.on){border-color:var(--pink);color:var(--text)}
+.rcm-level-btn .badge{font-size:.52rem;opacity:.6}
+.rcm-cert-label{font-size:.52rem;letter-spacing:.1em;text-transform:uppercase;color:var(--dim);padding:.5rem 0 .15rem;opacity:.65}
+
 /* ══════════════════════════════════════════════
    PRACTICE SIDEBAR PANEL
 ══════════════════════════════════════════════ */
@@ -452,6 +485,7 @@ input.song-name-input:focus{border-color:var(--gold)}
     <button class="tbtn" data-mode="songlib">Song Library</button>
     <button class="tbtn practice-tab" data-mode="practice">▶ Practice</button>
     <button class="tbtn tracker-tab" data-mode="tracker">☑ Tracker</button>
+    <button class="tbtn" data-mode="rcm" style="border-color:var(--pink)">♫ RCM</button>
   </div>
   <div class="metro-group">
     <span class="metro-label">BPM</span>
@@ -709,6 +743,22 @@ input.song-name-input:focus{border-color:var(--gold)}
       </div>
       <div class="sec">
         <button class="abtn sec sml" id="tracker-reset-all" style="width:100%;color:var(--pink);border-color:var(--pink)">Reset Week</button>
+      </div>
+    </div>
+    <!-- RCM sidebar -->
+    <div class="panel" id="p-rcm">
+      <div class="sec">
+        <div class="sec-label">RCM Level</div>
+        <div class="level-grid" id="rcm-level-grid"></div>
+      </div>
+      <div class="sec" style="margin-top:.5rem">
+        <div class="sec-label">Quick Info</div>
+        <div style="font-size:.6rem;color:var(--dim);line-height:1.85">
+          <strong style="color:var(--text)">HS</strong> = Hands Separate<br>
+          <strong style="color:var(--text)">HT</strong> = Hands Together<br>
+          <strong style="color:var(--text)">♩</strong> = quarter note BPM<br>
+          Click any keyboard to hear the scale or chord.
+        </div>
       </div>
     </div>
   </aside>
@@ -2143,7 +2193,7 @@ function buildBuilderTypeSelect(){const el=document.getElementById('sel-builder-
 function setMode(m){
   _stopSongLibPoll();stopPracticePlayback();
   S.mode=m;document.querySelectorAll('[data-mode]').forEach(b=>b.classList.toggle('on',b.dataset.mode===m));
-  const allPanels=['diatonic','browser','scaleview','progression','overlay','builder','cluster','songlib','practice','tracker'];
+  const allPanels=['diatonic','browser','scaleview','progression','overlay','builder','cluster','songlib','practice','tracker','rcm'];
   allPanels.forEach(p=>{const el=document.getElementById('p-'+p);if(el)el.classList.toggle('vis',p===m)});
   document.getElementById('gen-btns').style.display=['diatonic','browser','progression'].includes(m)?'flex':'none';
   if(m==='builder')renderBuilder();
@@ -2153,6 +2203,7 @@ function setMode(m){
   else if(m==='songlib')renderSongLibrary();
   else if(m==='practice')renderPractice();
   else if(m==='tracker'){renderTracker();updateTrackerSidebar();}
+  else if(m==='rcm'){buildRcmSidebar();renderRcmLevel();}
   else{document.getElementById('main-area').innerHTML='<div class="chord-grid" id="chord-grid"></div>';generate()}
 }
 
@@ -2169,6 +2220,367 @@ function buildPracticeExList(){
   });
 }
 function buildPracticeKeyGrid(){buildKeyGrid('kg-practice','practiceKey',()=>{stopPracticePlayback();if(S.mode==='practice')renderPractice()})}
+
+// ════════════════════════════════════════════════════
+// RCM TECHNICAL TESTS
+// ════════════════════════════════════════════════════
+S.rcmLevel='prepA';
+
+const RCM_SCALE_IV={
+  major:[0,2,4,5,7,9,11],
+  natural_minor:[0,2,3,5,7,8,10],
+  harmonic_minor:[0,2,3,5,7,8,11],
+  melodic_minor:[0,2,3,5,7,9,11],
+  chromatic:[0,1,2,3,4,5,6,7,8,9,10,11],
+  pentascale:[0,2,4,5,7],
+  whole_tone:[0,2,4,6,8,10],
+};
+
+const RCM_DATA=[
+{id:'prepA',name:'Preparatory A',certificate:'Elementary',marks:14,
+ scales:[
+  {type:'Legato Pentascales',keys:['C','G','D'],minor:['A'],minorType:'',played:'HS',range:'tonic to dominant, asc & desc (ending with blocked root-position triad)',tempo:'♩ = 100',intervals:RCM_SCALE_IV.pentascale,octaves:1},
+  {type:'Staccato Pentascales',keys:['C','G','D'],minor:['A'],minorType:'',played:'HS',range:'same as above',tempo:'♩ = 100',intervals:RCM_SCALE_IV.pentascale,octaves:1},
+ ],
+ chords:[
+  {type:'Triad Sequence (broken)',keys:['C'],minor:[],played:'HS',range:'1 octave, ascending',tempo:'♩ = 60',intervals:[0,4,7]},
+  {type:'Triad Sequence (solid/blocked)',keys:['C'],minor:[],played:'HS',range:'',tempo:'♩ = 72',intervals:[0,4,7]},
+ ],arpeggios:[]},
+{id:'prepB',name:'Preparatory B',certificate:'Elementary',marks:14,
+ scales:[
+  {type:'Legato Pentascales',keys:['D','A','F'],minor:['E','D'],minorType:'',played:'HS',range:'tonic to dominant, asc & desc (ending with blocked triad)',tempo:'♩ = 60',intervals:RCM_SCALE_IV.pentascale,octaves:1},
+  {type:'Staccato Pentascales',keys:['D','A','F'],minor:['E','D'],minorType:'',played:'HS',range:'same',tempo:'♩ = 60',intervals:RCM_SCALE_IV.pentascale,octaves:1},
+  {type:'One-octave Scales',keys:['C','G'],minor:['A'],minorType:'natural',played:'HS',range:'1 octave',tempo:'♩ = 60',intervals:RCM_SCALE_IV.major,octaves:1},
+  {type:'Contrary Motion Scale',keys:['C'],minor:[],played:'HT',range:'1 octave',tempo:'♩ = 60',intervals:RCM_SCALE_IV.major,octaves:1},
+ ],
+ chords:[
+  {type:'Tonic Triads (broken)',keys:['C','G'],minor:['A'],played:'HS',range:'1 octave (root position & inversions)',tempo:'♩ = 50',intervals:[0,4,7]},
+ ],arpeggios:[]},
+{id:'level1',name:'Level 1',certificate:'Elementary',marks:12,
+ scales:[
+  {type:'Two-octave Scales',keys:['C','G','F'],minor:['A','E','D'],minorType:'natural & harmonic',played:'HS',range:'2 octaves',tempo:'♩ = 69',intervals:RCM_SCALE_IV.major,octaves:2},
+  {type:'Contrary Motion',keys:['C'],minor:[],played:'HT',range:'2 octaves',tempo:'♩ = 69',intervals:RCM_SCALE_IV.major,octaves:2},
+  {type:'Chromatic',keys:['C'],minor:[],played:'HS',range:'1 octave',tempo:'♩ = 69',intervals:RCM_SCALE_IV.chromatic,octaves:1},
+ ],
+ chords:[
+  {type:'Tonic Triads (broken)',keys:['C','G','F'],minor:['A','E','D'],played:'HS',range:'1 octave (root position & inversions)',tempo:'♩ = 50',intervals:[0,4,7]},
+  {type:'Tonic Triads (solid/blocked)',keys:['C','G','F'],minor:['A','E','D'],played:'HS',range:'',tempo:'♩ = 100',intervals:[0,4,7]},
+ ],arpeggios:[]},
+{id:'level2',name:'Level 2',certificate:'Elementary',marks:12,
+ scales:[
+  {type:'Two-octave Scales',keys:['G','F','Bb'],minor:['E','D','G'],minorType:'harmonic & melodic',played:'HS',range:'2 octaves',tempo:'♩ = 80',intervals:RCM_SCALE_IV.major,octaves:2},
+  {type:'Formula Pattern',keys:['C','G'],minor:[],played:'HT',range:'2 octaves',tempo:'♩ = 80',intervals:RCM_SCALE_IV.major,octaves:2},
+  {type:'Chromatic',keys:['G'],minor:[],played:'HS',range:'1 octave',tempo:'♩ = 80',intervals:RCM_SCALE_IV.chromatic,octaves:1},
+ ],
+ chords:[
+  {type:'Tonic Triads (broken)',keys:['G','F','Bb'],minor:['E','D','G'],played:'HS',range:'1 octave (root position & inversions)',tempo:'♩ = 60',intervals:[0,4,7]},
+  {type:'Tonic Triads (solid/blocked)',keys:['G','F','Bb'],minor:['E','D','G'],played:'HS',range:'',tempo:'♩ = 112',intervals:[0,4,7]},
+ ],arpeggios:[]},
+{id:'level3',name:'Level 3',certificate:'Elementary',marks:12,
+ scales:[
+  {type:'Two-octave Scales',keys:['D','F','Bb'],minor:['B','D','G'],minorType:'harmonic & melodic',played:'HT',range:'2 octaves',tempo:'♩ = 80',intervals:RCM_SCALE_IV.major,octaves:2},
+  {type:'Formula Pattern',keys:['D'],minor:[],played:'HT',range:'2 octaves',tempo:'♩ = 80',intervals:RCM_SCALE_IV.major,octaves:2},
+  {type:'Chromatic',keys:['D'],minor:[],played:'HS',range:'1 octave',tempo:'♩ = 80',intervals:RCM_SCALE_IV.chromatic,octaves:1},
+ ],
+ chords:[
+  {type:'Tonic Triads (broken)',keys:['D','F','Bb'],minor:['B','D','G'],played:'HS',range:'2 octaves (root position & inversions)',tempo:'♩ = 69',intervals:[0,4,7]},
+  {type:'Tonic Triads (solid/blocked)',keys:['D','F','Bb'],minor:['B','D','G'],played:'HS',range:'',tempo:'♩ = 120',intervals:[0,4,7]},
+ ],arpeggios:[]},
+{id:'level4',name:'Level 4',certificate:'Elementary',marks:12,
+ scales:[
+  {type:'Two-octave Scales',keys:['Eb','A','E'],minor:['C','F#','C#'],minorType:'harmonic & melodic',played:'HT',range:'2 octaves',tempo:'♩ = 92',intervals:RCM_SCALE_IV.major,octaves:2},
+  {type:'Formula Pattern',keys:['Eb'],minor:[],played:'HT',range:'2 octaves',tempo:'♩ = 92',intervals:RCM_SCALE_IV.major,octaves:2},
+  {type:'Chromatic',keys:['Eb'],minor:[],played:'HT',range:'2 octaves',tempo:'♩ = 92',intervals:RCM_SCALE_IV.chromatic,octaves:2},
+ ],
+ chords:[
+  {type:'Tonic Triads (broken)',keys:['Eb','A','E'],minor:['C','F#','C#'],played:'HT',range:'2 octaves (root position & inversions)',tempo:'♩ = 69',intervals:[0,4,7]},
+  {type:'Tonic Triads (solid/blocked)',keys:['Eb','A','E'],minor:['C','F#','C#'],played:'HT',range:'',tempo:'♩ = 120',intervals:[0,4,7]},
+ ],arpeggios:[]},
+{id:'level5',name:'Level 5',certificate:'Intermediate',marks:12,
+ scales:[
+  {type:'Scales',keys:['C','G','D','A','E','B','F','Bb','Eb','Ab','Db','Gb'],minor:['A','E','B','F#','C#','G#','D','G','C','F','Bb','Eb'],minorType:'harmonic & melodic',played:'HT',range:'4 octaves',tempo:'♩ = 104 (eighth notes)',intervals:RCM_SCALE_IV.major,octaves:2},
+  {type:'Contrary Motion',keys:['C','G','D','F','Bb','Eb'],minor:[],played:'HT',range:'2 octaves',tempo:'♩ = 104',intervals:RCM_SCALE_IV.major,octaves:2},
+  {type:'Formula Pattern',keys:['C','G','D','A','E','F','Bb','Eb'],minor:[],played:'HT',range:'2 octaves',tempo:'♩ = 104',intervals:RCM_SCALE_IV.major,octaves:2},
+  {type:'Chromatic',keys:['C','G','D'],minor:[],played:'HT',range:'4 octaves',tempo:'♩ = 104',intervals:RCM_SCALE_IV.chromatic,octaves:2},
+ ],
+ chords:[
+  {type:'Tonic Triads (broken)',keys:['C','G','D','A','E','B','F','Bb','Eb','Ab','Db','Gb'],minor:['A','E','B','F#','C#','D','G','C','F','Bb','Eb'],played:'HT',range:'2 octaves',tempo:'♩ = 80',intervals:[0,4,7]},
+  {type:'Tonic Triads (solid/blocked)',keys:['C','G','D','A','E','B','F','Bb','Eb','Ab','Db','Gb'],minor:['A','E','B','F#','C#','D','G','C','F','Bb','Eb'],played:'HT',range:'',tempo:'♩ = 120',intervals:[0,4,7]},
+  {type:'Dominant 7th (solid/blocked)',keys:['C','G','D','F','Bb'],minor:[],played:'HT',range:'',tempo:'♩ = 104',intervals:[0,4,7,10]},
+  {type:'Diminished 7th (solid/blocked)',keys:['C'],minor:[],played:'HT',range:'',tempo:'♩ = 104',intervals:[0,3,6,9]},
+ ],
+ arpeggios:[
+  {type:'Tonic Arpeggios',keys:['C','G','D','A','E','F','Bb','Eb'],minor:['A','E','B','D','G','C'],played:'HT',range:'2 octaves',tempo:'♩ = 69',intervals:[0,4,7]},
+ ]},
+{id:'level6',name:'Level 6',certificate:'Intermediate',marks:12,
+ scales:[
+  {type:'Scales',keys:['All major keys'],minor:['All minor keys'],minorType:'harmonic & melodic',played:'HT',range:'4 octaves',tempo:'♩ = 112 (eighth notes)',intervals:RCM_SCALE_IV.major,octaves:2},
+  {type:'Contrary Motion',keys:['All major keys'],minor:[],played:'HT',range:'2 octaves',tempo:'♩ = 112',intervals:RCM_SCALE_IV.major,octaves:2},
+  {type:'Formula Pattern',keys:['All major keys'],minor:[],played:'HT',range:'2 octaves',tempo:'♩ = 112',intervals:RCM_SCALE_IV.major,octaves:2},
+  {type:'Chromatic',keys:['Starting on any note'],minor:[],played:'HT',range:'4 octaves',tempo:'♩ = 112',intervals:RCM_SCALE_IV.chromatic,octaves:2},
+ ],
+ chords:[
+  {type:'Tonic Triads (broken)',keys:['All major keys'],minor:['All minor keys'],played:'HT',range:'2 octaves',tempo:'♩ = 80',intervals:[0,4,7]},
+  {type:'Tonic Triads (solid/blocked)',keys:['All major keys'],minor:['All minor keys'],played:'HT',range:'',tempo:'♩ = 126',intervals:[0,4,7]},
+  {type:'Dominant 7th (solid/blocked)',keys:['All keys'],minor:[],played:'HT',range:'',tempo:'♩ = 112',intervals:[0,4,7,10]},
+  {type:'Diminished 7th (solid/blocked)',keys:['All keys'],minor:[],played:'HT',range:'',tempo:'♩ = 112',intervals:[0,3,6,9]},
+ ],
+ arpeggios:[
+  {type:'Tonic Arpeggios',keys:['All major keys'],minor:['All minor keys'],played:'HT',range:'2 octaves',tempo:'♩ = 80',intervals:[0,4,7]},
+  {type:'Dominant 7th Arpeggios',keys:['C','G','D','A','F','Bb','Eb'],minor:[],played:'HT',range:'2 octaves',tempo:'♩ = 69',intervals:[0,4,7,10]},
+ ]},
+{id:'level7',name:'Level 7',certificate:'Intermediate',marks:12,
+ scales:[
+  {type:'Scales',keys:['All major keys'],minor:['All minor keys'],minorType:'harmonic & melodic',played:'HT',range:'4 octaves',tempo:'♩ = 120 (eighth notes)',intervals:RCM_SCALE_IV.major,octaves:2},
+  {type:'Contrary Motion',keys:['All major keys'],minor:[],played:'HT',range:'2 octaves',tempo:'♩ = 120',intervals:RCM_SCALE_IV.major,octaves:2},
+  {type:'Formula Pattern',keys:['All major keys'],minor:[],played:'HT',range:'2 octaves',tempo:'♩ = 120',intervals:RCM_SCALE_IV.major,octaves:2},
+  {type:'Chromatic (in minor 3rds)',keys:['Starting on any note'],minor:[],played:'HT',range:'4 octaves',tempo:'♩ = 120',intervals:RCM_SCALE_IV.chromatic,octaves:2},
+ ],
+ chords:[
+  {type:'Tonic Triads (solid/blocked)',keys:['All major keys'],minor:['All minor keys'],played:'HT',range:'',tempo:'♩ = 132',intervals:[0,4,7]},
+  {type:'Dominant 7th (solid/blocked)',keys:['All keys'],minor:[],played:'HT',range:'',tempo:'♩ = 120',intervals:[0,4,7,10]},
+  {type:'Diminished 7th (solid/blocked)',keys:['All keys'],minor:[],played:'HT',range:'',tempo:'♩ = 120',intervals:[0,3,6,9]},
+ ],
+ arpeggios:[
+  {type:'Tonic Arpeggios',keys:['All major keys'],minor:['All minor keys'],played:'HT',range:'2 octaves',tempo:'♩ = 92',intervals:[0,4,7]},
+  {type:'Dominant 7th Arpeggios',keys:['All keys'],minor:[],played:'HT',range:'2 octaves',tempo:'♩ = 80',intervals:[0,4,7,10]},
+  {type:'Diminished 7th Arpeggios',keys:['All keys'],minor:[],played:'HT',range:'2 octaves',tempo:'♩ = 80',intervals:[0,3,6,9]},
+ ]},
+{id:'level8',name:'Level 8',certificate:'Intermediate',marks:12,
+ scales:[
+  {type:'Scales',keys:['All major keys'],minor:['All minor keys'],minorType:'harmonic & melodic',played:'HT',range:'4 octaves',tempo:'♩ = 132 (eighth notes)',intervals:RCM_SCALE_IV.major,octaves:2},
+  {type:'Contrary Motion',keys:['All major keys'],minor:['All harmonic minor keys'],played:'HT',range:'2 octaves',tempo:'♩ = 132',intervals:RCM_SCALE_IV.major,octaves:2},
+  {type:'Scales in 3rds',keys:['C','G','D','F','Bb'],minor:[],played:'HT',range:'2 octaves',tempo:'♩ = 69',intervals:RCM_SCALE_IV.major,octaves:2},
+  {type:'Scales in 6ths',keys:['C','G','D','F','Bb'],minor:[],played:'HT',range:'2 octaves',tempo:'♩ = 69',intervals:RCM_SCALE_IV.major,octaves:2},
+  {type:'Chromatic (in minor 3rds)',keys:['Starting on any note'],minor:[],played:'HT',range:'4 octaves',tempo:'♩ = 132',intervals:RCM_SCALE_IV.chromatic,octaves:2},
+  {type:'Whole Tone Scales',keys:['C','Db'],minor:[],played:'HT',range:'2 octaves',tempo:'♩ = 112',intervals:RCM_SCALE_IV.whole_tone,octaves:2},
+ ],
+ chords:[
+  {type:'Tonic Triads (solid/blocked)',keys:['All major keys'],minor:['All minor keys'],played:'HT',range:'',tempo:'♩ = 144',intervals:[0,4,7]},
+  {type:'Dominant 7th (solid/blocked)',keys:['All keys'],minor:[],played:'HT',range:'',tempo:'♩ = 132',intervals:[0,4,7,10]},
+  {type:'Diminished 7th (solid/blocked)',keys:['All keys'],minor:[],played:'HT',range:'',tempo:'♩ = 132',intervals:[0,3,6,9]},
+ ],
+ arpeggios:[
+  {type:'Tonic Arpeggios',keys:['All major keys'],minor:['All minor keys'],played:'HT',range:'4 octaves',tempo:'♩ = 104',intervals:[0,4,7]},
+  {type:'Dominant 7th Arpeggios',keys:['All keys'],minor:[],played:'HT',range:'4 octaves',tempo:'♩ = 92',intervals:[0,4,7,10]},
+  {type:'Diminished 7th Arpeggios',keys:['All keys'],minor:[],played:'HT',range:'4 octaves',tempo:'♩ = 92',intervals:[0,3,6,9]},
+ ]},
+{id:'level9',name:'Level 9',certificate:'Advanced',marks:10,
+ scales:[
+  {type:'Scales',keys:['All major keys'],minor:['All minor keys'],minorType:'harmonic & melodic',played:'HT',range:'4 octaves',tempo:'♩ = 144 (eighth notes)',intervals:RCM_SCALE_IV.major,octaves:2},
+  {type:'Contrary Motion',keys:['All major keys'],minor:['All harmonic minor keys'],played:'HT',range:'2 octaves',tempo:'♩ = 144',intervals:RCM_SCALE_IV.major,octaves:2},
+  {type:'Scales in 3rds',keys:['All major keys'],minor:[],played:'HT',range:'2 octaves',tempo:'♩ = 80',intervals:RCM_SCALE_IV.major,octaves:2},
+  {type:'Scales in 6ths',keys:['All major keys'],minor:[],played:'HT',range:'2 octaves',tempo:'♩ = 80',intervals:RCM_SCALE_IV.major,octaves:2},
+  {type:'Scales in 10ths',keys:['C','G','D','F','Bb','Eb'],minor:[],played:'HT',range:'2 octaves',tempo:'♩ = 69',intervals:RCM_SCALE_IV.major,octaves:2},
+  {type:'Chromatic (in minor 3rds)',keys:['Starting on any note'],minor:[],played:'HT',range:'4 octaves',tempo:'♩ = 144',intervals:RCM_SCALE_IV.chromatic,octaves:2},
+  {type:'Whole Tone Scales',keys:['C','Db'],minor:[],played:'HT',range:'2 octaves',tempo:'♩ = 120',intervals:RCM_SCALE_IV.whole_tone,octaves:2},
+ ],
+ chords:[
+  {type:'Tonic Triads (solid/blocked)',keys:['All major keys'],minor:['All minor keys'],played:'HT',range:'',tempo:'♩ = 152',intervals:[0,4,7]},
+  {type:'Dominant 7th (solid/blocked)',keys:['All keys'],minor:[],played:'HT',range:'',tempo:'♩ = 144',intervals:[0,4,7,10]},
+  {type:'Diminished 7th (solid/blocked)',keys:['All keys'],minor:[],played:'HT',range:'',tempo:'♩ = 144',intervals:[0,3,6,9]},
+ ],
+ arpeggios:[
+  {type:'Tonic Arpeggios',keys:['All major keys'],minor:['All minor keys'],played:'HT',range:'4 octaves',tempo:'♩ = 112',intervals:[0,4,7]},
+  {type:'Dominant 7th Arpeggios',keys:['All keys'],minor:[],played:'HT',range:'4 octaves',tempo:'♩ = 104',intervals:[0,4,7,10]},
+  {type:'Diminished 7th Arpeggios',keys:['All keys'],minor:[],played:'HT',range:'4 octaves',tempo:'♩ = 104',intervals:[0,3,6,9]},
+ ]},
+{id:'level10',name:'Level 10',certificate:'Advanced',marks:10,
+ scales:[
+  {type:'Scales',keys:['All major keys'],minor:['All minor keys'],minorType:'harmonic & melodic',played:'HT',range:'4 octaves',tempo:'♩ = 152 (eighth notes)',intervals:RCM_SCALE_IV.major,octaves:2},
+  {type:'Contrary Motion',keys:['All major keys'],minor:['All harmonic minor keys'],played:'HT',range:'2 octaves',tempo:'♩ = 152',intervals:RCM_SCALE_IV.major,octaves:2},
+  {type:'Scales in 3rds',keys:['All major keys'],minor:[],played:'HT',range:'2 octaves',tempo:'♩ = 92',intervals:RCM_SCALE_IV.major,octaves:2},
+  {type:'Scales in 6ths',keys:['All major keys'],minor:[],played:'HT',range:'2 octaves',tempo:'♩ = 92',intervals:RCM_SCALE_IV.major,octaves:2},
+  {type:'Scales in 10ths',keys:['All major keys'],minor:[],played:'HT',range:'2 octaves',tempo:'♩ = 80',intervals:RCM_SCALE_IV.major,octaves:2},
+  {type:'Chromatic (in minor 3rds)',keys:['Starting on any note'],minor:[],played:'HT',range:'4 octaves',tempo:'♩ = 152',intervals:RCM_SCALE_IV.chromatic,octaves:2},
+  {type:'Whole Tone Scales',keys:['C','Db'],minor:[],played:'HT',range:'2 octaves',tempo:'♩ = 126',intervals:RCM_SCALE_IV.whole_tone,octaves:2},
+  {type:'Separated by a tritone',keys:['C','D','E'],minor:[],played:'HT',range:'2 octaves',tempo:'♩ = 120',intervals:RCM_SCALE_IV.major,octaves:2},
+ ],
+ chords:[
+  {type:'Tonic Triads (solid/blocked)',keys:['All major keys'],minor:['All minor keys'],played:'HT',range:'',tempo:'♩ = 160',intervals:[0,4,7]},
+  {type:'Dominant 7th (solid/blocked)',keys:['All keys'],minor:[],played:'HT',range:'',tempo:'♩ = 152',intervals:[0,4,7,10]},
+  {type:'Diminished 7th (solid/blocked)',keys:['All keys'],minor:[],played:'HT',range:'',tempo:'♩ = 152',intervals:[0,3,6,9]},
+ ],
+ arpeggios:[
+  {type:'Tonic Arpeggios',keys:['All major keys'],minor:['All minor keys'],played:'HT',range:'4 octaves',tempo:'♩ = 120',intervals:[0,4,7]},
+  {type:'Dominant 7th Arpeggios',keys:['All keys'],minor:[],played:'HT',range:'4 octaves',tempo:'♩ = 112',intervals:[0,4,7,10]},
+  {type:'Diminished 7th Arpeggios',keys:['All keys'],minor:[],played:'HT',range:'4 octaves',tempo:'♩ = 112',intervals:[0,3,6,9]},
+ ]},
+];
+
+function rcmMiniSVG(highlightMidis,rootMidi,octaves){
+  if(!highlightMidis.length)return'';
+  octaves=octaves||2;
+  const startOct=Math.floor(Math.min(...highlightMidis,rootMidi)/12);
+  const START=startOct*12,END=START+octaves*12;
+  const w=16,h=56,bw=10,bh=34,PAD=1;
+  const svgW=octaves*7*w+PAD*2,svgH=h+4;
+  const hlSet=new Set(highlightMidis);
+  function wX(m){const ro=Math.floor((m-START)/12),s=(m-START)%12;return PAD+(ro*7+WIO.indexOf(s))*w}
+  function bX(m){const ro=Math.floor((m-START)/12),s=(m-START)%12;return PAD+(ro*7+BWU[s])*w}
+  function isBlk(m){return!WIO.includes(((m-START)%12+12)%12)}
+  let svg=`<svg width="${svgW}" height="${svgH}" viewBox="0 0 ${svgW} ${svgH}" xmlns="http://www.w3.org/2000/svg">`;
+  for(let m=START;m<=END;m++){if(isBlk(m))continue;const on=hlSet.has(m),isR=on&&m===rootMidi;
+    svg+=`<rect x="${wX(m)}" y="${PAD}" width="${w-1}" height="${h}" rx="2" fill="${isR?cv('--kroot'):on?cv('--khl-w'):cv('--kw')}" stroke="${isR?cv('--krootb'):on?cv('--kwb'):cv('--kwb')}" stroke-width="${on?1.2:.5}"/>`}
+  for(let m=START;m<=END;m++){if(!isBlk(m))continue;const on=hlSet.has(m),isR=on&&m===rootMidi;
+    svg+=`<rect x="${bX(m)}" y="${PAD}" width="${bw}" height="${bh}" rx="1.5" fill="${isR?cv('--kroot'):on?cv('--khl-b'):cv('--kb')}" stroke="${isR?cv('--krootb'):on?cv('--kbb'):cv('--kbb')}" stroke-width="${on?1.2:.5}"/>`}
+  return svg+'</svg>';
+}
+
+function rcmPlayScale(rootMidi,intervals,octaves){
+  const ctx=_ac(),beat=60/100,now=ctx.currentTime;
+  const up=[];
+  for(let o=0;o<octaves;o++)intervals.forEach(s=>up.push(rootMidi+s+o*12));
+  up.push(rootMidi+octaves*12);
+  const all=[...up,...up.slice(0,-1).reverse()];
+  all.forEach((m,i)=>playNote(m,now+i*beat*.5,.7,.14));
+}
+function rcmPlayChordBroken(rootMidi,intervals){
+  const ctx=_ac(),beat=60/80,now=ctx.currentTime;
+  const notes=[];
+  for(let inv=0;inv<3;inv++){
+    let chord=intervals.map(s=>rootMidi+s);
+    for(let k=0;k<inv;k++){chord[0]+=12;chord.sort((a,b)=>a-b)}
+    chord.forEach(n=>notes.push(n));
+  }
+  notes.forEach((m,i)=>playNote(m,now+i*beat*.4,.6,.14));
+}
+function rcmPlayChordSolid(rootMidi,intervals){
+  const ctx=_ac(),now=ctx.currentTime;
+  intervals.forEach(s=>playNote(rootMidi+s,now,.8,.12));
+}
+
+function buildRcmSidebar(){
+  const grid=document.getElementById('rcm-level-grid');if(!grid)return;grid.innerHTML='';
+  let lastCert='';
+  RCM_DATA.forEach(lvl=>{
+    if(lvl.certificate!==lastCert){
+      lastCert=lvl.certificate;
+      const lbl=document.createElement('div');lbl.className='rcm-cert-label';lbl.textContent=lvl.certificate;grid.appendChild(lbl);
+    }
+    const btn=document.createElement('button');btn.className='rcm-level-btn'+(S.rcmLevel===lvl.id?' on':'');
+    btn.innerHTML=`${lvl.name} <span class="badge">${lvl.marks} marks</span>`;
+    btn.onclick=()=>{S.rcmLevel=lvl.id;buildRcmSidebar();renderRcmLevel()};
+    grid.appendChild(btn);
+  });
+}
+
+function renderRcmLevel(){
+  const main=document.getElementById('main-area');
+  const lvl=RCM_DATA.find(l=>l.id===S.rcmLevel);
+  if(!lvl){main.innerHTML='';return;}
+
+  let html='';
+  html+=`<div class="rcm-wrap">`;
+  html+=`<div class="rcm-header"><h2>${lvl.name}</h2><span class="rcm-marks">Technical Tests: ${lvl.marks} marks</span></div>`;
+  html+=`<div class="rcm-section-sub">${lvl.certificate} Certificate · All patterns must be played from memory. The examiner will choose a representative sampling.</div>`;
+
+  // SCALES
+  if(lvl.scales.length){
+    html+=`<div class="rcm-cat-label">Scales</div>`;
+    lvl.scales.forEach((s,si)=>{
+      html+=`<div class="rcm-card"><h3>${s.type}</h3>`;
+      html+=`<div class="rcm-card-sub">${s.range?s.range+' · ':''}${s.played} · ${s.tempo}</div>`;
+      html+=`<table class="rcm-table"><thead><tr><th>Keys</th><th>Played</th><th>Tempo</th></tr></thead><tbody>`;
+      if(s.keys.length) html+=`<tr><td class="key-list">${s.keys.join(', ')} major</td><td>${s.played}</td><td class="tempo">${s.tempo}</td></tr>`;
+      if(s.minor&&s.minor.length) html+=`<tr><td class="key-list">${s.minor.join(', ')} minor ${s.minorType?'('+s.minorType+')':''}</td><td>${s.played}</td><td class="tempo">${s.tempo}</td></tr>`;
+      html+=`</tbody></table>`;
+
+      const specMaj=s.keys.filter(k=>!k.startsWith('All')&&!k.startsWith('Starting')&&k.length<=2);
+      const specMin=(s.minor||[]).filter(k=>!k.startsWith('All')&&k.length<=3);
+      if(specMaj.length||specMin.length){
+        html+=`<div class="rcm-kbd-row" id="rcm-scale-${si}">`;
+        specMaj.forEach(key=>{
+          const ri=nIdx(key),rootMidi=60+ri-(ri>6?12:0);
+          const midis=s.intervals.map(iv=>rootMidi+iv);
+          if(s.octaves>=2)s.intervals.forEach(iv=>midis.push(rootMidi+iv+12));
+          midis.push(rootMidi+s.octaves*12);
+          const uniq=[...new Set(midis)].sort((a,b)=>a-b);
+          const oct=Math.max(2,Math.ceil((uniq[uniq.length-1]-uniq[0])/12)+1);
+          html+=`<div class="rcm-kbd-card" data-action="scale" data-root="${ri}" data-oct="${s.octaves}" data-intervals='${JSON.stringify(s.intervals)}'><div class="kname">${key} major</div>${rcmMiniSVG(uniq,rootMidi,oct)}<div class="ksub">tap to play</div></div>`;
+        });
+        specMin.forEach(key=>{
+          const ri=nIdx(key),rootMidi=60+ri-(ri>6?12:0);
+          const minIv=s.minorType&&s.minorType.includes('harmonic')?RCM_SCALE_IV.harmonic_minor:RCM_SCALE_IV.natural_minor;
+          const midis=minIv.map(iv=>rootMidi+iv);
+          if(s.octaves>=2)minIv.forEach(iv=>midis.push(rootMidi+iv+12));
+          midis.push(rootMidi+s.octaves*12);
+          const uniq=[...new Set(midis)].sort((a,b)=>a-b);
+          const oct=Math.max(2,Math.ceil((uniq[uniq.length-1]-uniq[0])/12)+1);
+          html+=`<div class="rcm-kbd-card" data-action="scale" data-root="${ri}" data-oct="${s.octaves}" data-intervals='${JSON.stringify(minIv)}'><div class="kname">${key} minor</div>${rcmMiniSVG(uniq,rootMidi,oct)}<div class="ksub">tap to play</div></div>`;
+        });
+        html+=`</div>`;
+      }
+      html+=`</div>`;
+    });
+  }
+
+  // CHORDS
+  if(lvl.chords.length){
+    html+=`<div class="rcm-cat-label">Chords</div>`;
+    lvl.chords.forEach((c,ci)=>{
+      html+=`<div class="rcm-card"><h3>${c.type}</h3>`;
+      html+=`<div class="rcm-card-sub">${c.range?c.range+' · ':''}${c.played} · ${c.tempo}</div>`;
+      html+=`<table class="rcm-table"><thead><tr><th>Keys</th><th>Played</th><th>Tempo</th></tr></thead><tbody>`;
+      if(c.keys.length) html+=`<tr><td class="key-list">${c.keys.join(', ')}${c.minor&&c.minor.length?'':' major'}</td><td>${c.played}</td><td class="tempo">${c.tempo}</td></tr>`;
+      if(c.minor&&c.minor.length) html+=`<tr><td class="key-list">${c.minor.join(', ')} minor</td><td>${c.played}</td><td class="tempo">${c.tempo}</td></tr>`;
+      html+=`</tbody></table>`;
+
+      const specKeys=c.keys.filter(k=>!k.startsWith('All')&&k.length<=3);
+      const specMin=(c.minor||[]).filter(k=>!k.startsWith('All')&&k.length<=3);
+      if(specKeys.length||specMin.length){
+        html+=`<div class="rcm-kbd-row" id="rcm-chord-${ci}">`;
+        specKeys.forEach(key=>{
+          const ri=nIdx(key),rootMidi=60+ri-(ri>6?12:0);
+          const midis=c.intervals.map(iv=>rootMidi+iv);
+          html+=`<div class="rcm-kbd-card" data-action="chord" data-root="${ri}" data-intervals='${JSON.stringify(c.intervals)}' data-broken="${c.type.includes('broken')?1:0}"><div class="kname">${key}</div>${rcmMiniSVG(midis,rootMidi,2)}<div class="ksub">tap to play</div></div>`;
+        });
+        specMin.forEach(key=>{
+          const ri=nIdx(key),rootMidi=60+ri-(ri>6?12:0);
+          const minIntervals=c.intervals[1]===4?[0,3,7,...c.intervals.slice(3)]:c.intervals;
+          const midis=minIntervals.map(iv=>rootMidi+iv);
+          html+=`<div class="rcm-kbd-card" data-action="chord" data-root="${ri}" data-intervals='${JSON.stringify(minIntervals)}' data-broken="${c.type.includes('broken')?1:0}"><div class="kname">${key}m</div>${rcmMiniSVG(midis,rootMidi,2)}<div class="ksub">tap to play</div></div>`;
+        });
+        html+=`</div>`;
+      }
+      html+=`</div>`;
+    });
+  }
+
+  // ARPEGGIOS
+  if(lvl.arpeggios&&lvl.arpeggios.length){
+    html+=`<div class="rcm-cat-label">Arpeggios</div>`;
+    lvl.arpeggios.forEach((a,ai)=>{
+      html+=`<div class="rcm-card"><h3>${a.type}</h3>`;
+      html+=`<div class="rcm-card-sub">${a.range?a.range+' · ':''}${a.played} · ${a.tempo}</div>`;
+      html+=`<table class="rcm-table"><thead><tr><th>Keys</th><th>Played</th><th>Tempo</th></tr></thead><tbody>`;
+      if(a.keys.length) html+=`<tr><td class="key-list">${a.keys.join(', ')}</td><td>${a.played}</td><td class="tempo">${a.tempo}</td></tr>`;
+      if(a.minor&&a.minor.length) html+=`<tr><td class="key-list">${a.minor.join(', ')} minor</td><td>${a.played}</td><td class="tempo">${a.tempo}</td></tr>`;
+      html+=`</tbody></table></div>`;
+    });
+  }
+
+  html+=`<div class="rcm-info"><strong>Source:</strong> RCM Piano Syllabus, 2022 Edition. Prep A–Level 3 extracted directly from the syllabus PDF. Levels 4–10 compiled from published RCM requirements — verify against your copy of Technical Requirements for Piano (RCM Publishing) for exact details.</div>`;
+  html+=`</div>`;
+
+  main.innerHTML=html;
+
+  // Attach click handlers
+  main.querySelectorAll('.rcm-kbd-card').forEach(card=>{
+    card.addEventListener('click',()=>{
+      const action=card.dataset.action;
+      const ri=parseInt(card.dataset.root);
+      const rootMidi=60+ri-(ri>6?12:0);
+      const intervals=JSON.parse(card.dataset.intervals);
+      if(action==='scale'){
+        rcmPlayScale(rootMidi,intervals,parseInt(card.dataset.oct)||1);
+      }else if(action==='chord'){
+        if(card.dataset.broken==='1')rcmPlayChordBroken(rootMidi,intervals);
+        else rcmPlayChordSolid(rootMidi,intervals);
+      }
+    });
+  });
+}
 
 // ════════════════════════════════════════════════════
 // BOOTSTRAP
